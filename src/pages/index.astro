@@ -1,0 +1,82 @@
+---
+import '../styles/global.css';
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro + Tailwind 4 + Ledding</title>
+	</head>
+	<body class="bg-gray-950 text-white m-0 p-0 overflow-hidden flex items-center justify-center h-screen w-screen">
+		<div id="led-container" class="w-full h-full relative"></div>
+
+		<script>
+      import { Ledding, CircleRenderer, CenterAligner, Directions } from 'ledding';
+
+      const pattern = [
+        [1, 0, 0, 0, 1],
+        [0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0],
+        [1, 0, 0, 0, 1],
+      ];
+
+      // Wait for DOM
+      document.addEventListener('DOMContentLoaded', () => {
+        const ledding = new Ledding('#led-container', {
+            ledSize: 30,
+            ledGap: 10,
+            artPattern: pattern,
+            renderer: CircleRenderer,
+            aligner: CenterAligner,
+            scaleToFit: true,
+            colors: {
+                background: null,
+                base: '#333333',
+                states: {
+                    1: '#4ade80', // Tailwind green-400
+                }
+            },
+            opacities: {
+                base: { min: 0.1, max: 0.3 },
+                active: 1
+            },
+            transitions: {
+                ignition: { min: 0.2, max: 0.8, randomize: true },
+                extinction: { min: 0.2, max: 0.8, randomize: true },
+                morph: { min: 0.2, max: 0.8, randomize: true }
+            },
+            animation: {
+                scroll: {
+                    direction: Directions.TO_LEFT,
+                    speed: 0 // No scroll for now to see the X
+                },
+                ignition: {
+                    pattern: 'random',
+                    direction: Directions.TO_RIGHT,
+                    delay: 5,
+                    step: 1
+                },
+                extinction: {
+                    pattern: 'random',
+                    direction: Directions.TO_LEFT,
+                    delay: 5,
+                    step: 1
+                }
+            },
+            grid: {
+                fill: true,
+                lifespan: 100
+            },
+            fps: 60
+        });
+        
+        console.log('Ledding initialized');
+      });
+		</script>
+	</body>
+</html>
