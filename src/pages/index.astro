@@ -22,6 +22,7 @@ import "../styles/global.css";
                 CircleRenderer,
                 CenterAligner,
                 Directions,
+                Pattern,
             } from "ledding";
             import { LED_CONFIG } from "../data/led-config";
 
@@ -35,36 +36,32 @@ import "../styles/global.css";
                     aligner: CenterAligner,
                     scaleToFit: true,
                     colors: LED_CONFIG.colors,
-                    opacities: LED_CONFIG.opacities || {
-                        base: { min: 0.1, max: 0.3 },
-                        active: 1,
-                    },
                     transitions: {
-                        ignition: { min: 0.2, max: 0.8, randomize: true },
-                        extinction: { min: 0.2, max: 0.8, randomize: true },
-                        morph: { min: 0.2, max: 0.8, randomize: true },
+                        ignition: { min: 0.1 },
+                        extinction: { min: 0.1 },
+                        morph: { min: 0.1 },
                     },
                     animation: {
                         scroll: {
-                            direction: Directions.TO_LEFT,
-                            speed: 0,
+                            direction: Directions.TO_RIGHT,
+                            speed: 8,
                         },
                         ignition: {
-                            pattern: "random",
-                            direction: Directions.TO_RIGHT,
-                            delay: 5,
+                            pattern: Pattern.CASCADE,
+                            direction: Directions.TO_TOP,
+                            delay: 1,
                             step: 1,
                         },
                         extinction: {
-                            pattern: "random",
-                            direction: Directions.TO_LEFT,
-                            delay: 5,
+                            pattern: Pattern.CASCADE,
+                            direction: Directions.TO_BOTTOM,
+                            delay: 1,
                             step: 1,
                         },
                     },
                     grid: {
-                        fill: true,
-                        lifespan: 100,
+                        fill: false,
+                        lifespan: 60,
                     },
                     fps: 60,
                 });
