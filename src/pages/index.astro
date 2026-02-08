@@ -12,160 +12,44 @@ import "../styles/global.css";
         <title>Astro + Tailwind 4 + Ledding</title>
     </head>
     <body
-        class="bg-gray-950 text-white m-0 p-0 overflow-hidden flex flex-col items-center justify-center h-screen w-screen font-sans"
+        class="bg-gray-950 text-white m-0 p-0 overflow-hidden flex items-center justify-center h-screen w-screen"
     >
-        <!-- Control Panel -->
-        <div
-            class="fixed top-4 z-50 bg-gray-900/80 backdrop-blur-md p-4 rounded-2xl border border-gray-800 shadow-xl flex gap-4 transition-all hover:bg-gray-900"
-        >
-            <div class="flex flex-col gap-2">
-                <label
-                    class="text-xs text-gray-500 uppercase tracking-widest font-bold"
-                    >Pattern</label
-                >
-                <div class="flex gap-2">
-                    <button
-                        data-pattern="HEART"
-                        class="px-3 py-1 bg-gray-800 hover:bg-pink-600 rounded text-sm transition-colors border border-gray-700"
-                        >Heart</button
-                    >
-                    <button
-                        data-pattern="INVADER"
-                        class="px-3 py-1 bg-gray-800 hover:bg-green-600 rounded text-sm transition-colors border border-gray-700"
-                        >Invader</button
-                    >
-                    <button
-                        data-pattern="GHOST"
-                        class="px-3 py-1 bg-gray-800 hover:bg-blue-600 rounded text-sm transition-colors border border-gray-700"
-                        >Ghost</button
-                    >
-                </div>
-            </div>
-
-            <div class="w-px bg-gray-800 mx-2"></div>
-
-            <div class="flex flex-col gap-2">
-                <label
-                    class="text-xs text-gray-500 uppercase tracking-widest font-bold"
-                    >Style</label
-                >
-                <div class="flex gap-2">
-                    <button
-                        data-renderer="circle"
-                        class="px-3 py-1 bg-gray-800 hover:bg-gray-600 rounded text-sm transition-colors border border-gray-700"
-                        >Circle</button
-                    >
-                    <button
-                        data-renderer="square"
-                        class="px-3 py-1 bg-gray-800 hover:bg-gray-600 rounded text-sm transition-colors border border-gray-700"
-                        >Square</button
-                    >
-                </div>
-            </div>
-
-            <div class="w-px bg-gray-800 mx-2"></div>
-
-            <div class="flex flex-col gap-2">
-                <label
-                    class="text-xs text-gray-500 uppercase tracking-widest font-bold"
-                    >Scroll</label
-                >
-                <div class="flex gap-2">
-                    <button
-                        data-scroll="none"
-                        class="px-3 py-1 bg-gray-800 hover:bg-gray-600 rounded text-sm transition-colors border border-gray-700"
-                        >Static</button
-                    >
-                    <button
-                        data-scroll="left"
-                        class="px-3 py-1 bg-gray-800 hover:bg-gray-600 rounded text-sm transition-colors border border-gray-700"
-                        >Left</button
-                    >
-                    <button
-                        data-scroll="right"
-                        class="px-3 py-1 bg-gray-800 hover:bg-gray-600 rounded text-sm transition-colors border border-gray-700"
-                        >Right</button
-                    >
-                </div>
-            </div>
-        </div>
-
-        <!-- LED Container -->
-        <div id="led-container" class="w-full h-full relative z-0"></div>
+        <div id="led-container" class="w-full h-full relative"></div>
 
         <script>
             import {
                 Ledding,
                 CircleRenderer,
-                SquareRenderer,
                 CenterAligner,
                 Directions,
-                Pattern,
             } from "ledding";
 
-            const PATTERNS = {
-                HEART: [
-                    [0, 1, 0, 1, 0],
-                    [1, 1, 1, 1, 1],
-                    [1, 1, 1, 1, 1],
-                    [0, 1, 1, 1, 0],
-                    [0, 0, 1, 0, 0],
-                ],
-                INVADER: [
-                    [0, 0, 1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 1, 0, 0, 0, 0],
-                    [0, 0, 1, 1, 1, 1, 1, 0],
-                    [0, 1, 1, 0, 1, 1, 1, 0],
-                    [1, 1, 1, 1, 1, 1, 1, 1],
-                    [1, 0, 1, 1, 1, 1, 1, 0],
-                    [1, 0, 1, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 1, 1, 0, 0, 0],
-                ],
-                GHOST: [
-                    [0, 1, 1, 1, 0],
-                    [1, 1, 1, 1, 1],
-                    [1, 1, 1, 1, 1],
-                    [1, 1, 1, 1, 1],
-                    [1, 0, 1, 0, 1],
-                ],
-            };
+            const pattern = [
+                [1, 0, 0, 0, 1],
+                [0, 1, 0, 1, 0],
+                [0, 0, 1, 0, 0],
+                [0, 1, 0, 1, 0],
+                [1, 0, 0, 0, 1],
+            ];
 
-            let currentInstance = null;
-            let currentState = {
-                pattern: PATTERNS.HEART,
-                renderer: CircleRenderer,
-                direction: Directions.TO_LEFT,
-                speed: 0,
-            };
-
-            function initLedding() {
-                if (currentInstance) {
-                    currentInstance.destroy();
-                }
-
-                // Determine color based on pattern
-                let activeColor = "#60a5fa"; // Default Blue (Ghost)
-                if (currentState.pattern === PATTERNS.HEART)
-                    activeColor = "#f43f5e"; // Rose-500
-                if (currentState.pattern === PATTERNS.INVADER)
-                    activeColor = "#4ade80"; // Green-400
-
-                currentInstance = new Ledding("#led-container", {
+            // Wait for DOM
+            document.addEventListener("DOMContentLoaded", () => {
+                const ledding = new Ledding("#led-container", {
                     ledSize: 30,
-                    ledGap: 8,
-                    artPattern: currentState.pattern,
-                    renderer: currentState.renderer,
+                    ledGap: 10,
+                    artPattern: pattern,
+                    renderer: CircleRenderer,
                     aligner: CenterAligner,
                     scaleToFit: true,
                     colors: {
                         background: null,
-                        base: "#1a1a1a",
+                        base: "#333333",
                         states: {
-                            1: activeColor,
+                            1: "#4ade80", // Tailwind green-400
                         },
                     },
                     opacities: {
-                        base: { min: 0.1, max: 0.2 },
+                        base: { min: 0.1, max: 0.3 },
                         active: 1,
                     },
                     transitions: {
@@ -175,17 +59,17 @@ import "../styles/global.css";
                     },
                     animation: {
                         scroll: {
-                            direction: currentState.direction,
-                            speed: currentState.speed,
+                            direction: Directions.TO_LEFT,
+                            speed: 0, // No scroll for now to see the X
                         },
                         ignition: {
-                            pattern: Pattern.RANDOM,
+                            pattern: "random",
                             direction: Directions.TO_RIGHT,
                             delay: 5,
                             step: 1,
                         },
                         extinction: {
-                            pattern: Pattern.RANDOM,
+                            pattern: "random",
                             direction: Directions.TO_LEFT,
                             delay: 5,
                             step: 1,
@@ -197,79 +81,8 @@ import "../styles/global.css";
                     },
                     fps: 60,
                 });
-            }
 
-            // Wait for DOM
-            document.addEventListener("DOMContentLoaded", () => {
-                initLedding();
-
-                // Pattern Buttons
-                document
-                    .querySelectorAll("button[data-pattern]")
-                    .forEach((btn) => {
-                        btn.addEventListener("click", (e) => {
-                            const patternKey = (e.target as HTMLElement).dataset
-                                .pattern;
-                            if (PATTERNS[patternKey]) {
-                                // If we only change pattern, we can use setPattern without full re-init
-                                // But for consistency let's update state.
-                                currentState.pattern = PATTERNS[patternKey];
-
-                                // Update color based on pattern for extra flair
-                                if (patternKey === "HEART") {
-                                    // We need to re-init to change colors efficiently via config or update styles
-                                    // Since setPattern only changes shapes, let's just use setPattern for smooth transition if possible
-                                    // But to change colors we might need full reinit.
-                                    // For now, let's just stick to setPattern for performance where possible.
-
-                                    // setPattern doesn't change color.
-                                    // Let's just re-init to be safe and allow color changes later if we want.
-                                    initLedding();
-                                } else {
-                                    currentInstance.setPattern(
-                                        PATTERNS[patternKey],
-                                    );
-                                }
-                            }
-                        });
-                    });
-
-                // Renderer Buttons
-                document
-                    .querySelectorAll("button[data-renderer]")
-                    .forEach((btn) => {
-                        btn.addEventListener("click", (e) => {
-                            const type = (e.target as HTMLElement).dataset
-                                .renderer;
-                            currentState.renderer =
-                                type === "circle"
-                                    ? CircleRenderer
-                                    : SquareRenderer;
-                            initLedding();
-                        });
-                    });
-
-                // Scroll Buttons
-                document
-                    .querySelectorAll("button[data-scroll]")
-                    .forEach((btn) => {
-                        btn.addEventListener("click", (e) => {
-                            const type = (e.target as HTMLElement).dataset
-                                .scroll;
-                            if (type === "none") {
-                                currentState.speed = 0;
-                            } else {
-                                currentState.speed = 50;
-                                currentState.direction =
-                                    type === "left"
-                                        ? Directions.TO_LEFT
-                                        : Directions.TO_RIGHT;
-                            }
-                            initLedding();
-                        });
-                    });
-
-                console.log("Ledding demo initialized");
+                console.log("Ledding initialized");
             });
         </script>
     </body>
