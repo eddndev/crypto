@@ -23,32 +23,19 @@ import "../styles/global.css";
                 CenterAligner,
                 Directions,
             } from "ledding";
-
-            const pattern = [
-                [1, 0, 0, 0, 1],
-                [0, 1, 0, 1, 0],
-                [0, 0, 1, 0, 0],
-                [0, 1, 0, 1, 0],
-                [1, 0, 0, 0, 1],
-            ];
+            import { LED_CONFIG } from "../data/led-config";
 
             // Wait for DOM
             document.addEventListener("DOMContentLoaded", () => {
                 const ledding = new Ledding("#led-container", {
-                    ledSize: 30,
-                    ledGap: 10,
-                    artPattern: pattern,
+                    ledSize: 15, // Reduced size for larger pattern
+                    ledGap: 4, // Reduced gap
+                    artPattern: LED_CONFIG.pattern,
                     renderer: CircleRenderer,
                     aligner: CenterAligner,
                     scaleToFit: true,
-                    colors: {
-                        background: null,
-                        base: "#333333",
-                        states: {
-                            1: "#4ade80", // Tailwind green-400
-                        },
-                    },
-                    opacities: {
+                    colors: LED_CONFIG.colors,
+                    opacities: LED_CONFIG.opacities || {
                         base: { min: 0.1, max: 0.3 },
                         active: 1,
                     },
@@ -60,7 +47,7 @@ import "../styles/global.css";
                     animation: {
                         scroll: {
                             direction: Directions.TO_LEFT,
-                            speed: 0, // No scroll for now to see the X
+                            speed: 0,
                         },
                         ignition: {
                             pattern: "random",
@@ -82,7 +69,7 @@ import "../styles/global.css";
                     fps: 60,
                 });
 
-                console.log("Ledding initialized");
+                console.log("Ledding initialized with custom config");
             });
         </script>
     </body>
