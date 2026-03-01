@@ -14,6 +14,9 @@ web/.astro/
 .DS_Store
 Thumbs.db
 
+# WASM build output
+pkg/
+
 # Env
 .env
 .env.*
