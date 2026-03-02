@@ -1,0 +1,15 @@
+{
+  "name": "stego",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "stego_bg.wasm",
+    "stego.js",
+    "stego.d.ts"
+  ],
+  "main": "stego.js",
+  "types": "stego.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
