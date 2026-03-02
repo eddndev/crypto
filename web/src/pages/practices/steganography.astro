@@ -2,6 +2,11 @@
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import { render } from 'astro:content';
+import { getEntry } from 'astro:content';
+
+const entry = await getEntry('practices', 'steganography');
+const { Content } = await render(entry!);
 ---
 
 <Base title="Steganography — Intro to Cryptography" description="Hide secret messages inside BMP images using LSB encoding.">
@@ -36,6 +41,9 @@ import Footer from '../../components/Footer.astro';
         </button>
         <button id="tab-decode" class="tab-btn font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200">
           DECODE
+        </button>
+        <button id="tab-writeup" class="tab-btn font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200">
+          WRITEUP
         </button>
       </div>
 
@@ -128,6 +136,13 @@ import Footer from '../../components/Footer.astro';
         </div>
       </div>
 
+      <!-- Writeup Panel -->
+      <div id="panel-writeup" class="panel bg-[#13131a]/80 backdrop-blur-sm border border-[#3a3a42] p-8 max-md:p-5 hidden">
+        <div class="prose max-w-none">
+          <Content />
+        </div>
+      </div>
+
     </div>
   </main>
   <Footer />
@@ -185,10 +200,10 @@ import Footer from '../../components/Footer.astro';
     }
 
     // --- DOM refs ---
-    const tabEncode = document.getElementById('tab-encode')!;
-    const tabDecode = document.getElementById('tab-decode')!;
-    const panelEncode = document.getElementById('panel-encode')!;
-    const panelDecode = document.getElementById('panel-decode')!;
+    const tabs = ['encode', 'decode', 'writeup'].map(name => ({
+      btn: document.getElementById(`tab-${name}`)!,
+      panel: document.getElementById(`panel-${name}`)!,
+    }));
 
     const encodeDropzone = document.getElementById('encode-dropzone')!;
     const encodeFileInput = document.getElementById('encode-file-input') as HTMLInputElement;
@@ -218,18 +233,13 @@ import Footer from '../../components/Footer.astro';
     let bmpCapacity = 0;
 
     // --- Tabs ---
-    tabEncode.addEventListener('click', () => {
-      tabEncode.classList.add('active');
-      tabDecode.classList.remove('active');
-      panelEncode.classList.remove('hidden');
-      panelDecode.classList.add('hidden');
-    });
-
-    tabDecode.addEventListener('click', () => {
-      tabDecode.classList.add('active');
-      tabEncode.classList.remove('active');
-      panelDecode.classList.remove('hidden');
-      panelEncode.classList.add('hidden');
+    tabs.forEach((current, i) => {
+      current.btn.addEventListener('click', () => {
+        tabs.forEach((t, j) => {
+          t.btn.classList.toggle('active', i === j);
+          t.panel.classList.toggle('hidden', i !== j);
+        });
+      });
     });
 
     // --- Drag-and-drop helper ---

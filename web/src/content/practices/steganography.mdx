@@ -1,0 +1,226 @@
+---
+title: "Steganography"
+description: "LSB steganography in 24-bit BMP images"
+tags: ["LSB", "images", "encoding"]
+order: 1
+draft: false
+---
+
+## What is steganography?
+
+Steganography is the practice of hiding information inside another medium so that its very existence goes unnoticed. Unlike encryption — which scrambles a message into unreadable ciphertext — steganography conceals the message in plain sight.
+
+In this practice we use **Least Significant Bit (LSB) encoding** to embed arbitrary bytes inside the pixel data of a 24-bit BMP image. Each color channel (Blue, Green, Red) stores 8 bits, but the lowest bit contributes so little to the visible color that flipping it is imperceptible to the human eye.
+
+---
+
+## The BMP format
+
+A 24-bit BMP file has a simple, uncompressed structure:
+
+| Offset | Size | Field |
+|--------|------|-------|
+| 0–1 | 2 B | Signature `"BM"` |
+| 2–5 | 4 B | File size |
+| 10–13 | 4 B | Pixel data offset |
+| 14–17 | 4 B | DIB header size (40) |
+| 18–21 | 4 B | Width (pixels) |
+| 22–25 | 4 B | Height (signed) |
+| 28–29 | 2 B | Bits per pixel (24) |
+
+After the header, pixel data is stored **row by row** in BGR order (not RGB). Each row is padded to a multiple of 4 bytes. For a 5-pixel-wide image, each row occupies `5 × 3 = 15` bytes of color data plus 1 byte of padding = 16 bytes.
+
+### Parsing the header in Rust
+
+```rust
+fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
+    if data.len() < 54 {
+        return Err("File too small to be a valid BMP".into());
+    }
+    if data[0] != b'B' || data[1] != b'M' {
+        return Err("Not a BMP file (missing BM signature)".into());
+    }
+
+    let pixel_offset = u32::from_le_bytes([data[10], data[11], data[12], data[13]]) as usize;
+    let width = u32::from_le_bytes([data[18], data[19], data[20], data[21]]);
+    let height_raw = i32::from_le_bytes([data[22], data[23], data[24], data[25]]);
+    let height = height_raw.unsigned_abs();
+    let bpp = u16::from_le_bytes([data[28], data[29]]);
+
+    if bpp != 24 {
+        return Err(format!("Only 24-bit BMP supported, got {bpp}-bit"));
+    }
+
+    Ok(BmpInfo { pixel_offset, width, height })
+}
+```
+
+### Skipping row padding
+
+Not every byte after the header is usable. Padding bytes at the end of each row must be skipped — writing to them would corrupt the file structure.
+
+```rust
+fn usable_byte_indices(pixel_offset: usize, width: u32, height: u32) -> Vec<usize> {
+    let row_data = width as usize * 3;
+    let row_stride = (row_data + 3) & !3; // align to 4 bytes
+    let mut indices = Vec::with_capacity(row_data * height as usize);
+
+    for row in 0..height as usize {
+        let row_start = pixel_offset + row * row_stride;
+        for col in 0..row_data {
+            indices.push(row_start + col);
+        }
+    }
+    indices
+}
+```
+
+The expression `(row_data + 3) & !3` rounds up to the nearest multiple of 4. Only indices within the actual BGR triplets are returned.
+
+---
+
+## The encoding algorithm
+
+### Binary layout in the LSBs
+
+Every message is prepended with a 10-byte header:
+
+```
+[3 bytes salt] [3 bytes check] [4 bytes length] [N bytes message]
+```
+
+- **Salt**: 3 cryptographically random bytes
+- **Check**: `salt[i] XOR 'E','D','D'` — verification without a static pattern
+- **Length**: message size as a big-endian `u32`
+
+When decoding, we verify `salt ^ check == "EDD"`. If it doesn't match, the image has no hidden message. The salt ensures the header bits are different every time, making the encoding harder to detect by comparing LSB patterns.
+
+### Bit embedding
+
+Each byte is embedded **MSB first** into the lowest bit of consecutive color channel bytes:
+
+```rust
+fn write_lsb_bytes(data: &mut [u8], indices: &[usize], start_bit: usize, bytes: &[u8]) {
+    let mut bit_idx = start_bit;
+    for byte in bytes {
+        for bit_pos in (0..8).rev() {
+            let bit = (byte >> bit_pos) & 1;
+            let i = indices[bit_idx];
+            data[i] = (data[i] & 0xFE) | bit;
+            bit_idx += 1;
+        }
+    }
+}
+```
+
+`& 0xFE` clears the LSB, then `| bit` sets it to the desired value. The image changes by at most 1 unit per channel — invisible to the eye.
+
+### The encode function
+
+```rust
+pub fn encode(bmp_data: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let info = parse_bmp(bmp_data)?;
+    let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
+
+    let total_bits = (HEADER_SIZE + message.len()) * 8;
+    if total_bits > indices.len() {
+        let available = indices.len() / 8;
+        let available = available.saturating_sub(HEADER_SIZE);
+        return Err(format!(
+            "Message too large: need {} bytes but only {} available",
+            message.len(), available
+        ));
+    }
+
+    // Build header: [3 salt] [3 check] [4 length BE]
+    let mut salt = [0u8; 3];
+    getrandom::getrandom(&mut salt).map_err(|e| format!("RNG error: {e}"))?;
+    let check = [
+        salt[0] ^ MAGIC[0],
+        salt[1] ^ MAGIC[1],
+        salt[2] ^ MAGIC[2],
+    ];
+    let len_bytes = (message.len() as u32).to_be_bytes();
+
+    let mut header = [0u8; HEADER_SIZE];
+    header[0..3].copy_from_slice(&salt);
+    header[3..6].copy_from_slice(&check);
+    header[6..10].copy_from_slice(&len_bytes);
+
+    let mut data = bmp_data.to_vec();
+    write_lsb_bytes(&mut data, &indices, 0, &header);
+    write_lsb_bytes(&mut data, &indices, HEADER_SIZE * 8, message);
+
+    Ok(data)
+}
+```
+
+---
+
+## Decoding
+
+Decoding reverses the process: read the header, verify the magic, extract the length, then read that many bytes.
+
+```rust
+pub fn decode(bmp_data: &[u8]) -> Result<Vec<u8>, String> {
+    let info = parse_bmp(bmp_data)?;
+    let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
+
+    if indices.len() < HEADER_SIZE * 8 {
+        return Err("Image too small to contain a hidden message".into());
+    }
+
+    // Verify magic: salt ^ check must equal "EDD"
+    let header = read_lsb_bytes(bmp_data, &indices, 0, 6);
+    let salt = &header[0..3];
+    let check = &header[3..6];
+
+    if salt[0] ^ check[0] != MAGIC[0]
+        || salt[1] ^ check[1] != MAGIC[1]
+        || salt[2] ^ check[2] != MAGIC[2]
+    {
+        return Err("No hidden message found in this image".into());
+    }
+
+    // Read length and extract message
+    let len_bytes = read_lsb_bytes(bmp_data, &indices, 48, 4);
+    let msg_len = u32::from_be_bytes([len_bytes[0], len_bytes[1], len_bytes[2], len_bytes[3]]) as usize;
+
+    let message = read_lsb_bytes(bmp_data, &indices, HEADER_SIZE * 8, msg_len);
+    Ok(message)
+}
+```
+
+---
+
+## Capacity
+
+The maximum number of bytes that can be hidden in an image:
+
+```
+capacity = (width × 3 × height) / 8 − 10
+```
+
+Each usable pixel byte contributes 1 bit. We divide total usable bytes by 8 to get the number of message bytes, then subtract the 10-byte header (6 magic + 4 length).
+
+```rust
+pub fn capacity(bmp_data: &[u8]) -> Result<u32, String> {
+    let info = parse_bmp(bmp_data)?;
+    let total_usable = (info.width as usize * 3 * info.height as usize) / 8;
+    Ok(total_usable.saturating_sub(HEADER_SIZE) as u32)
+}
+```
+
+For a 200×200 image: `(200 × 3 × 200) / 8 − 10 = 14,990 bytes` — enough to hide roughly 15 KB of text.
+
+---
+
+## From Rust to the browser
+
+The crate compiles to WebAssembly with `wasm-pack`:
+
+```bash
+wasm-pack build crates/stego --target web --out-dir ../../web/src/wasm/stego
+```
+
+This produces a `.wasm` binary and a JavaScript glue module that exposes `encode`, `decode`, and `capacity` as regular async functions. The browser loads the WASM module, and all encoding and decoding runs **entirely client-side** — no file ever leaves the user's machine.
