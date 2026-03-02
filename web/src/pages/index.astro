@@ -17,10 +17,12 @@ const practices = [
 
 <Base>
   <Header />
-  <main>
+  <main class="relative overflow-hidden">
+    <!-- Background blobs -->
+    <div id="blob-container" class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true"></div>
     <Hero />
 
-    <section id="practices" class="py-24 border-t border-border">
+    <section id="practices" class="relative py-24 border-t border-border">
       <div class="mx-auto w-full max-w-[1200px] px-8">
         <div>
           <span class="section-label block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3">What you'll build</span>
@@ -41,7 +43,7 @@ const practices = [
       </div>
     </section>
 
-    <section id="about" class="py-24 pb-32 border-t border-border">
+    <section id="about" class="relative py-24 pb-32 border-t border-border">
       <div class="mx-auto w-full max-w-[1200px] px-8">
         <div class="grid grid-cols-2 max-md:grid-cols-1 gap-16 max-md:gap-8 items-start">
           <div class="about__left">
@@ -65,3 +67,39 @@ const practices = [
   </main>
   <Footer />
 </Base>
+
+<script>
+  const blobContainer = document.getElementById('blob-container')!;
+  const BLOB_SPACING = 500;
+  const blobPresets = [
+    { color: '#1a1a4e', size: 600, opacity: 0.40, blur: 150, x: 10 },
+    { color: '#1e1b4b', size: 500, opacity: 0.30, blur: 140, x: 75 },
+    { color: '#172044', size: 450, opacity: 0.35, blur: 130, x: 35 },
+  ];
+
+  function generateBlobs() {
+    const totalHeight = blobContainer.parentElement!.scrollHeight;
+    const needed = Math.max(2, Math.ceil(totalHeight / BLOB_SPACING));
+
+    blobContainer.innerHTML = '';
+    for (let i = 0; i < needed; i++) {
+      const preset = blobPresets[i % blobPresets.length];
+      const blob = document.createElement('div');
+      blob.style.cssText = `
+        position: absolute;
+        top: ${i * BLOB_SPACING}px;
+        left: ${preset.x}%;
+        width: ${preset.size}px;
+        height: ${preset.size}px;
+        border-radius: 50%;
+        background: ${preset.color};
+        opacity: ${preset.opacity};
+        filter: blur(${preset.blur}px);
+        transform: translateX(-50%);
+      `;
+      blobContainer.appendChild(blob);
+    }
+  }
+
+  generateBlobs();
+</script>
