@@ -1,5 +1,8 @@
 use wasm_bindgen::prelude::*;
 
+const MAGIC: [u8; 3] = *b"EDD";
+const HEADER_SIZE: usize = 10; // 3 salt + 3 check + 4 length
+
 struct BmpInfo {
     pixel_offset: usize,
     width: u32,
@@ -50,29 +53,23 @@ fn usable_byte_indices(pixel_offset: usize, width: u32, height: u32) -> Vec<usiz
     indices
 }
 
-#[wasm_bindgen]
-pub fn encode(bmp_data: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
-    let info = parse_bmp(bmp_data)?;
-    let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
-
-    let total_bits = (4 + message.len()) * 8;
-    if total_bits > indices.len() {
-        let available = indices.len() / 8;
-        let available = if available >= 4 { available - 4 } else { 0 };
-        return Err(format!(
-            "Message too large: need {} bytes but only {} available",
-            message.len(),
-            available
-        ));
+/// Read N bytes from the LSBs starting at bit offset `start_bit`.
+fn read_lsb_bytes(data: &[u8], indices: &[usize], start_bit: usize, count: usize) -> Vec<u8> {
+    let mut result = vec![0u8; count];
+    for (byte_idx, out_byte) in result.iter_mut().enumerate() {
+        for bit_pos in (0..8).rev() {
+            let idx = start_bit + byte_idx * 8 + (7 - bit_pos);
+            let bit = data[indices[idx]] & 1;
+            *out_byte |= bit << bit_pos;
+        }
     }
+    result
+}
 
-    let len_bytes = (message.len() as u32).to_be_bytes();
-    let payload: Vec<u8> = len_bytes.iter().chain(message.iter()).copied().collect();
-
-    let mut data = bmp_data.to_vec();
-    let mut bit_idx = 0;
-
-    for byte in &payload {
+/// Write bytes into the LSBs starting at bit offset `start_bit`.
+fn write_lsb_bytes(data: &mut [u8], indices: &[usize], start_bit: usize, bytes: &[u8]) {
+    let mut bit_idx = start_bit;
+    for byte in bytes {
         for bit_pos in (0..8).rev() {
             let bit = (byte >> bit_pos) & 1;
             let i = indices[bit_idx];
@@ -80,6 +77,42 @@ pub fn encode(bmp_data: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
             bit_idx += 1;
         }
     }
+}
+
+#[wasm_bindgen]
+pub fn encode(bmp_data: &[u8], message: &[u8]) -> Result<Vec<u8>, String> {
+    let info = parse_bmp(bmp_data)?;
+    let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
+
+    let total_bits = (HEADER_SIZE + message.len()) * 8;
+    if total_bits > indices.len() {
+        let available = indices.len() / 8;
+        let available = available.saturating_sub(HEADER_SIZE);
+        return Err(format!(
+            "Message too large: need {} bytes but only {} available",
+            message.len(),
+            available
+        ));
+    }
+
+    // Build header: [3 salt] [3 check] [4 length BE]
+    let mut salt = [0u8; 3];
+    getrandom::getrandom(&mut salt).map_err(|e| format!("RNG error: {e}"))?;
+    let check = [
+        salt[0] ^ MAGIC[0],
+        salt[1] ^ MAGIC[1],
+        salt[2] ^ MAGIC[2],
+    ];
+    let len_bytes = (message.len() as u32).to_be_bytes();
+
+    let mut header = [0u8; HEADER_SIZE];
+    header[0..3].copy_from_slice(&salt);
+    header[3..6].copy_from_slice(&check);
+    header[6..10].copy_from_slice(&len_bytes);
+
+    let mut data = bmp_data.to_vec();
+    write_lsb_bytes(&mut data, &indices, 0, &header);
+    write_lsb_bytes(&mut data, &indices, HEADER_SIZE * 8, message);
 
     Ok(data)
 }
@@ -89,38 +122,34 @@ pub fn decode(bmp_data: &[u8]) -> Result<Vec<u8>, String> {
     let info = parse_bmp(bmp_data)?;
     let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
 
-    if indices.len() < 32 {
+    if indices.len() < HEADER_SIZE * 8 {
         return Err("Image too small to contain a hidden message".into());
     }
 
-    // Read 32 bits for length
-    let mut len_bytes = [0u8; 4];
-    for (byte_idx, len_byte) in len_bytes.iter_mut().enumerate() {
-        for bit_pos in (0..8).rev() {
-            let bit_idx = byte_idx * 8 + (7 - bit_pos);
-            let bit = bmp_data[indices[bit_idx]] & 1;
-            *len_byte |= bit << bit_pos;
-        }
+    // Read and verify magic: salt ^ check must equal "EDD"
+    let header = read_lsb_bytes(bmp_data, &indices, 0, 6);
+    let salt = &header[0..3];
+    let check = &header[3..6];
+
+    if salt[0] ^ check[0] != MAGIC[0]
+        || salt[1] ^ check[1] != MAGIC[1]
+        || salt[2] ^ check[2] != MAGIC[2]
+    {
+        return Err("No hidden message found in this image".into());
     }
 
-    let msg_len = u32::from_be_bytes(len_bytes) as usize;
-    let total_bits = (4 + msg_len) * 8;
+    // Read length
+    let len_bytes = read_lsb_bytes(bmp_data, &indices, 48, 4);
+    let msg_len = u32::from_be_bytes([len_bytes[0], len_bytes[1], len_bytes[2], len_bytes[3]]) as usize;
 
+    let total_bits = (HEADER_SIZE + msg_len) * 8;
     if total_bits > indices.len() {
         return Err(format!(
             "Encoded length ({msg_len} bytes) exceeds image capacity"
         ));
     }
 
-    let mut message = vec![0u8; msg_len];
-    for (byte_idx, msg_byte) in message.iter_mut().enumerate() {
-        for bit_pos in (0..8).rev() {
-            let bit_idx = (4 + byte_idx) * 8 + (7 - bit_pos);
-            let bit = bmp_data[indices[bit_idx]] & 1;
-            *msg_byte |= bit << bit_pos;
-        }
-    }
-
+    let message = read_lsb_bytes(bmp_data, &indices, HEADER_SIZE * 8, msg_len);
     Ok(message)
 }
 
@@ -128,10 +157,7 @@ pub fn decode(bmp_data: &[u8]) -> Result<Vec<u8>, String> {
 pub fn capacity(bmp_data: &[u8]) -> Result<u32, String> {
     let info = parse_bmp(bmp_data)?;
     let total_usable = (info.width as usize * 3 * info.height as usize) / 8;
-    if total_usable < 4 {
-        return Ok(0);
-    }
-    Ok((total_usable - 4) as u32)
+    Ok(total_usable.saturating_sub(HEADER_SIZE) as u32)
 }
 
 #[cfg(test)]
@@ -218,23 +244,25 @@ mod tests {
     fn capacity_calculation() {
         let bmp = make_bmp(10, 10);
         let cap = capacity(&bmp).unwrap();
-        // 10 * 3 * 10 = 300 usable bytes, 300 / 8 = 37, 37 - 4 = 33
-        assert_eq!(cap, 33);
+        // 10 * 3 * 10 = 300 usable bits, 300 / 8 = 37, 37 - 10 = 27
+        assert_eq!(cap, 27);
     }
 
     #[test]
     fn capacity_with_padding() {
-        // Width 5: row_data = 15, row_stride = 16 (1 byte padding)
-        // But usable bytes = 5*3*4 = 60, 60/8 = 7, 7-4 = 3
+        // Width 5: row_data = 15, usable = 5*3*4 = 60, 60/8 = 7, 7 - 10 = saturates to 0
         let bmp = make_bmp(5, 4);
         let cap = capacity(&bmp).unwrap();
-        assert_eq!(cap, 3);
+        assert_eq!(cap, 0);
     }
 
     #[test]
     fn roundtrip_with_padding() {
         // Width 5 causes 1 byte of row padding
         let bmp = make_bmp(5, 10);
+        let cap = capacity(&bmp).unwrap();
+        // 5*3*10 = 150, 150/8 = 18, 18 - 10 = 8
+        assert_eq!(cap, 8);
         let msg = b"Hi";
 
         let encoded = encode(&bmp, msg).unwrap();
@@ -260,7 +288,6 @@ mod tests {
     #[test]
     fn reject_message_exceeds_capacity() {
         let bmp = make_bmp(2, 2);
-        // 2*3*2 = 12 usable bytes, 12/8 = 1, 1-4 = negative → capacity 0
         let long_msg = vec![b'A'; 100];
         assert!(encode(&bmp, &long_msg).is_err());
     }
@@ -268,8 +295,29 @@ mod tests {
     #[test]
     fn parse_bmp_rejects_non_24bit() {
         let mut data = make_bmp(10, 10);
-        // Change bpp to 32
         data[28..30].copy_from_slice(&32u16.to_le_bytes());
         assert!(parse_bmp(&data).is_err());
+    }
+
+    #[test]
+    fn decode_rejects_unencoded_image() {
+        let bmp = make_bmp(20, 20);
+        let err = decode(&bmp).unwrap_err();
+        assert_eq!(err, "No hidden message found in this image");
+    }
+
+    #[test]
+    fn magic_header_verified() {
+        let bmp = make_bmp(10, 10);
+        let encoded = encode(&bmp, b"test").unwrap();
+
+        // Read the first 6 bytes from LSBs and verify XOR = "EDD"
+        let info = parse_bmp(&encoded).unwrap();
+        let indices = usable_byte_indices(info.pixel_offset, info.width, info.height);
+        let header = read_lsb_bytes(&encoded, &indices, 0, 6);
+
+        assert_eq!(header[0] ^ header[3], b'E');
+        assert_eq!(header[1] ^ header[4], b'D');
+        assert_eq!(header[2] ^ header[5], b'D');
     }
 }
