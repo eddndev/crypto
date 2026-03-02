@@ -1,0 +1,321 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+---
+
+<Base title="Steganography — Intro to Cryptography" description="Hide secret messages inside BMP images using LSB encoding.">
+  <Header />
+  <main class="pt-28 pb-24">
+    <div class="mx-auto w-full max-w-[1200px] px-8">
+
+      <!-- Breadcrumb + Intro -->
+      <div class="stego-intro mb-16">
+        <a href="/#practices" class="inline-flex items-center gap-2 font-mono text-[0.8rem] text-text-secondary hover:text-accent transition-colors duration-200 mb-8">
+          <span>←</span> Back to practices
+        </a>
+        <span class="block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3">Practice 01</span>
+        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-[-0.02em] uppercase mb-4">STEGANOGRAPHY</h1>
+        <p class="text-text-secondary text-[1.05rem] leading-relaxed max-w-[640px]">
+          Hide secret messages inside BMP images using Least Significant Bit encoding.
+          Each bit of your message replaces the lowest bit of a color channel — invisible to the eye, but recoverable with the right algorithm.
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-0 mb-0">
+        <button id="tab-encode" class="tab-btn active font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-border border-b-0 transition-colors duration-200">
+          ENCODE
+        </button>
+        <button id="tab-decode" class="tab-btn font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-border border-b-0 transition-colors duration-200">
+          DECODE
+        </button>
+      </div>
+
+      <!-- Encode Panel -->
+      <div id="panel-encode" class="panel border border-border p-8 max-md:p-5">
+        <div class="grid grid-cols-2 max-md:grid-cols-1 gap-8">
+          <!-- Left: Inputs -->
+          <div class="flex flex-col gap-6">
+            <div>
+              <label class="block font-mono text-[0.75rem] text-text-secondary uppercase tracking-[0.08em] mb-2">BMP Image</label>
+              <div id="encode-dropzone" class="dropzone flex flex-col items-center justify-center gap-2 border border-dashed border-border p-8 text-center cursor-pointer transition-colors duration-200 hover:border-accent-deep">
+                <span class="font-mono text-[0.8rem] text-text-secondary">Drop a 24-bit BMP here or click to browse</span>
+                <span id="encode-file-info" class="font-mono text-[0.7rem] text-accent hidden"></span>
+                <input id="encode-file-input" type="file" accept=".bmp" class="hidden" />
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label class="font-mono text-[0.75rem] text-text-secondary uppercase tracking-[0.08em]">Secret Message</label>
+                <span id="encode-counter" class="font-mono text-[0.7rem] text-text-secondary">0 / — bytes</span>
+              </div>
+              <textarea
+                id="encode-message"
+                rows="6"
+                placeholder="Type your secret message here..."
+                class="w-full bg-bg-primary border border-border p-4 font-mono text-[0.85rem] text-text-primary resize-y focus:outline-none focus:border-accent-deep transition-colors duration-200 placeholder:text-text-secondary/40"
+              ></textarea>
+            </div>
+            <button id="encode-btn" disabled class="font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-accent-deep text-white border-none cursor-pointer transition-all duration-200 hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
+              ENCODE
+            </button>
+          </div>
+
+          <!-- Right: Result -->
+          <div class="flex flex-col gap-4">
+            <label class="font-mono text-[0.75rem] text-text-secondary uppercase tracking-[0.08em]">Result</label>
+            <div id="encode-result" class="flex-1 flex items-center justify-center border border-border p-8 min-h-[200px]">
+              <span class="font-mono text-[0.8rem] text-text-secondary/40">Encoded image will appear here</span>
+            </div>
+            <button id="encode-download" class="hidden font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-bg-card border border-border text-text-primary cursor-pointer transition-all duration-200 hover:border-accent-deep hover:text-accent">
+              DOWNLOAD ENCODED BMP
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decode Panel -->
+      <div id="panel-decode" class="panel border border-border p-8 max-md:p-5 hidden">
+        <div class="grid grid-cols-2 max-md:grid-cols-1 gap-8">
+          <!-- Left: Input -->
+          <div class="flex flex-col gap-6">
+            <div>
+              <label class="block font-mono text-[0.75rem] text-text-secondary uppercase tracking-[0.08em] mb-2">Encoded BMP Image</label>
+              <div id="decode-dropzone" class="dropzone flex flex-col items-center justify-center gap-2 border border-dashed border-border p-8 text-center cursor-pointer transition-colors duration-200 hover:border-accent-deep">
+                <span class="font-mono text-[0.8rem] text-text-secondary">Drop an encoded BMP here or click to browse</span>
+                <span id="decode-file-info" class="font-mono text-[0.7rem] text-accent hidden"></span>
+                <input id="decode-file-input" type="file" accept=".bmp" class="hidden" />
+              </div>
+            </div>
+            <button id="decode-btn" disabled class="font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-accent-deep text-white border-none cursor-pointer transition-all duration-200 hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
+              DECODE
+            </button>
+          </div>
+
+          <!-- Right: Result -->
+          <div class="flex flex-col gap-4">
+            <label class="font-mono text-[0.75rem] text-text-secondary uppercase tracking-[0.08em]">Extracted Message</label>
+            <pre id="decode-result" class="flex-1 border border-border p-6 font-mono text-[0.85rem] text-text-primary whitespace-pre-wrap break-words min-h-[200px] overflow-auto bg-bg-primary"><span class="text-text-secondary/40">Hidden message will appear here</span></pre>
+            <button id="decode-download" class="hidden font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-bg-card border border-border text-text-primary cursor-pointer transition-all duration-200 hover:border-accent-deep hover:text-accent">
+              DOWNLOAD AS TXT
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .tab-btn {
+    background: var(--color-bg-card);
+    color: var(--color-text-secondary);
+  }
+
+  .tab-btn.active {
+    background: var(--color-accent-deep);
+    color: white;
+  }
+
+  .dropzone.dragover {
+    border-color: var(--color-accent);
+    background: var(--color-bg-card-hover);
+  }
+</style>
+
+<script>
+  async function init() {
+    const wasm = await import('../../wasm/stego/stego.js');
+    await wasm.default();
+
+    // --- Helpers ---
+    function readFileAsUint8Array(file: File): Promise<Uint8Array> {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function downloadBlob(data: Uint8Array, filename: string, mime: string) {
+      const blob = new Blob([data], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // --- DOM refs ---
+    const tabEncode = document.getElementById('tab-encode')!;
+    const tabDecode = document.getElementById('tab-decode')!;
+    const panelEncode = document.getElementById('panel-encode')!;
+    const panelDecode = document.getElementById('panel-decode')!;
+
+    const encodeDropzone = document.getElementById('encode-dropzone')!;
+    const encodeFileInput = document.getElementById('encode-file-input') as HTMLInputElement;
+    const encodeFileInfo = document.getElementById('encode-file-info')!;
+    const encodeMessage = document.getElementById('encode-message') as HTMLTextAreaElement;
+    const encodeCounter = document.getElementById('encode-counter')!;
+    const encodeBtn = document.getElementById('encode-btn') as HTMLButtonElement;
+    const encodeResult = document.getElementById('encode-result')!;
+    const encodeDownload = document.getElementById('encode-download') as HTMLButtonElement;
+
+    const decodeDropzone = document.getElementById('decode-dropzone')!;
+    const decodeFileInput = document.getElementById('decode-file-input') as HTMLInputElement;
+    const decodeFileInfo = document.getElementById('decode-file-info')!;
+    const decodeBtn = document.getElementById('decode-btn') as HTMLButtonElement;
+    const decodeResult = document.getElementById('decode-result')!;
+    const decodeDownload = document.getElementById('decode-download') as HTMLButtonElement;
+
+    // --- State ---
+    let encodeBmpData: Uint8Array | null = null;
+    let encodedBmpData: Uint8Array | null = null;
+    let decodeBmpData: Uint8Array | null = null;
+    let decodedMessage: Uint8Array | null = null;
+    let bmpCapacity = 0;
+
+    // --- Tabs ---
+    tabEncode.addEventListener('click', () => {
+      tabEncode.classList.add('active');
+      tabDecode.classList.remove('active');
+      panelEncode.classList.remove('hidden');
+      panelDecode.classList.add('hidden');
+    });
+
+    tabDecode.addEventListener('click', () => {
+      tabDecode.classList.add('active');
+      tabEncode.classList.remove('active');
+      panelDecode.classList.remove('hidden');
+      panelEncode.classList.add('hidden');
+    });
+
+    // --- Drag-and-drop helper ---
+    function setupDropzone(dropzone: HTMLElement, fileInput: HTMLInputElement, onFile: (file: File) => void) {
+      dropzone.addEventListener('click', () => fileInput.click());
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const file = e.dataTransfer?.files[0];
+        if (file) onFile(file);
+      });
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (file) onFile(file);
+      });
+    }
+
+    // --- Encode: file upload ---
+    function updateEncodeState() {
+      const msgBytes = new TextEncoder().encode(encodeMessage.value).length;
+      encodeCounter.textContent = `${msgBytes} / ${bmpCapacity > 0 ? bmpCapacity : '—'} bytes`;
+      encodeBtn.disabled = !encodeBmpData || msgBytes === 0 || msgBytes > bmpCapacity;
+    }
+
+    setupDropzone(encodeDropzone, encodeFileInput, async (file) => {
+      try {
+        encodeBmpData = await readFileAsUint8Array(file);
+        bmpCapacity = wasm.capacity(encodeBmpData);
+        encodeFileInfo.textContent = `${file.name} — capacity: ${bmpCapacity} bytes`;
+        encodeFileInfo.classList.remove('hidden');
+        updateEncodeState();
+      } catch (e: any) {
+        encodeFileInfo.textContent = `Error: ${e.message || e}`;
+        encodeFileInfo.classList.remove('hidden');
+        encodeBmpData = null;
+        bmpCapacity = 0;
+        updateEncodeState();
+      }
+    });
+
+    encodeMessage.addEventListener('input', updateEncodeState);
+
+    // --- Encode: action ---
+    encodeBtn.addEventListener('click', () => {
+      if (!encodeBmpData) return;
+      try {
+        const msgBytes = new TextEncoder().encode(encodeMessage.value);
+        encodedBmpData = wasm.encode(encodeBmpData, msgBytes);
+        encodeResult.innerHTML = `<span class="font-mono text-[0.85rem] text-accent">Message encoded successfully into ${encodedBmpData!.length.toLocaleString()} bytes</span>`;
+        encodeDownload.classList.remove('hidden');
+      } catch (e: any) {
+        encodeResult.innerHTML = `<span class="font-mono text-[0.85rem] text-red-400">Error: ${e.message || e}</span>`;
+        encodeDownload.classList.add('hidden');
+      }
+    });
+
+    encodeDownload.addEventListener('click', () => {
+      if (encodedBmpData) {
+        downloadBlob(encodedBmpData, 'encoded.bmp', 'image/bmp');
+      }
+    });
+
+    // --- Decode: file upload ---
+    setupDropzone(decodeDropzone, decodeFileInput, async (file) => {
+      try {
+        decodeBmpData = await readFileAsUint8Array(file);
+        // Validate it's a BMP by checking capacity
+        wasm.capacity(decodeBmpData);
+        decodeFileInfo.textContent = file.name;
+        decodeFileInfo.classList.remove('hidden');
+        decodeBtn.disabled = false;
+      } catch (e: any) {
+        decodeFileInfo.textContent = `Error: ${e.message || e}`;
+        decodeFileInfo.classList.remove('hidden');
+        decodeBmpData = null;
+        decodeBtn.disabled = true;
+      }
+    });
+
+    // --- Decode: action ---
+    decodeBtn.addEventListener('click', () => {
+      if (!decodeBmpData) return;
+      try {
+        decodedMessage = wasm.decode(decodeBmpData);
+        const text = new TextDecoder().decode(decodedMessage);
+        decodeResult.textContent = text;
+        decodeDownload.classList.remove('hidden');
+      } catch (e: any) {
+        decodeResult.innerHTML = `<span class="text-red-400">Error: ${e.message || e}</span>`;
+        decodeDownload.classList.add('hidden');
+        decodedMessage = null;
+      }
+    });
+
+    decodeDownload.addEventListener('click', () => {
+      if (decodedMessage) {
+        downloadBlob(decodedMessage, 'decoded.txt', 'text/plain');
+      }
+    });
+
+    // --- GSAP fade-in ---
+    if (typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      try {
+        const { gsap } = await import('gsap');
+        gsap.from('.stego-intro', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' });
+        gsap.from('.tab-btn', { opacity: 0, y: 10, duration: 0.4, delay: 0.3, stagger: 0.1, ease: 'power2.out' });
+        gsap.from('.panel', { opacity: 0, y: 15, duration: 0.5, delay: 0.5, ease: 'power2.out' });
+      } catch {
+        // GSAP not available, skip animations
+      }
+    }
+  }
+
+  init();
+</script>

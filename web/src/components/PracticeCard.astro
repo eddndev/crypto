@@ -5,23 +5,25 @@ interface Props {
   tags: string[];
   index: number;
   comingSoon?: boolean;
+  href?: string;
 }
 
-const { title, description, tags, index, comingSoon = true } = Astro.props;
+const { title, description, tags, index, comingSoon = true, href } = Astro.props;
 const num = String(index).padStart(2, '0');
+const Tag = href ? 'a' : 'article';
 ---
 
-<article class="card relative p-8 bg-bg-card border border-border transition-[border-color,background] duration-300 hover:bg-bg-card-hover hover:border-accent-deep">
+<Tag href={href} class="card block relative p-8 bg-bg-card border border-border transition-[border-color,background] duration-300 hover:bg-bg-card-hover hover:border-accent-deep">
   <div class="flex items-center justify-between mb-5">
     <span class="font-mono text-[0.8rem] text-accent font-semibold">{num}</span>
-    {comingSoon && <span class="font-mono text-[0.65rem] font-semibold tracking-[0.1em] py-0.5 px-2.5 border border-accent-deep text-accent">SOON</span>}
+    {comingSoon && !href && <span class="font-mono text-[0.65rem] font-semibold tracking-[0.1em] py-0.5 px-2.5 border border-accent-deep text-accent">SOON</span>}
   </div>
   <h3 class="text-[1.4rem] font-extrabold tracking-[-0.02em] uppercase mb-3">{title}</h3>
   <p class="text-text-secondary text-[0.88rem] leading-relaxed mb-5 normal-case">{description}</p>
   <div class="flex flex-wrap gap-2">
     {tags.map((tag) => <span class="card__tag font-mono text-[0.7rem] text-text-secondary tracking-[0.02em]">{tag}</span>)}
   </div>
-</article>
+</Tag>
 
 <style>
   .card__tag::before {

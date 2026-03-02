@@ -10,6 +10,7 @@ const practices = [
     title: 'Steganography',
     description: 'Hide secret messages inside images using LSB encoding. Upload a file and embed hidden data invisible to the naked eye.',
     tags: ['LSB', 'images', 'encoding'],
+    href: '/practices/steganography',
   },
 ];
 ---
@@ -32,6 +33,8 @@ const practices = [
               description={p.description}
               tags={p.tags}
               index={i + 1}
+              comingSoon={!p.href}
+              href={p.href}
             />
           ))}
         </div>
