@@ -1,0 +1,297 @@
+---
+title: "Affine Cipher"
+description: "Encrypt and decrypt with the affine cipher over ℤₙ"
+tags: ["modular arithmetic", "affine", "encryption"]
+order: 2
+draft: false
+---
+
+## The Affine Cipher
+
+The affine cipher encrypts by applying a linear function over modular arithmetic. Given keys **α** (multiplicative) and **β** (additive) over an alphabet of size **n**:
+
+- **Encryption:** e_k(x) = (α · x + β) mod n
+- **Decryption:** d_k(y) = α⁻¹ · (y − β) mod n
+
+For the cipher to be reversible, **α must have a multiplicative inverse modulo n**, which exists if and only if gcd(α, n) = 1.
+
+Finding that inverse is the core problem — and the Extended Euclidean Algorithm is the tool that solves it.
+
+---
+
+## The Euclidean Algorithm
+
+Before extending it, recall the classic algorithm for computing gcd(a, b). It relies on the property that gcd(a, b) = gcd(b, a mod b):
+
+```
+gcd(a, b):
+  while b ≠ 0:
+    a, b ← b, a mod b
+  return a
+```
+
+**Example:** gcd(26, 3):
+
+| Step | a  | b  |
+|------|----|----|
+| 0    | 26 | 3  |
+| 1    | 3  | 2  |
+| 2    | 2  | 1  |
+| 3    | 1  | 0  |
+
+Result: gcd(26, 3) = 1. Since it equals 1, the inverse exists.
+
+---
+
+## The Extended Euclidean Algorithm
+
+The extension computes not only gcd(a, b), but also integers **s** and **t** satisfying **Bézout's identity**:
+
+```
+a · s + b · t = gcd(a, b)
+```
+
+When gcd(α, n) = 1, we get n · s + α · t = 1, which means **α · t ≡ 1 (mod n)** — so **t mod n** is the multiplicative inverse α⁻¹.
+
+### The iterative method
+
+We maintain three sequences — r (remainders), s (coefficients of n), and t (coefficients of α) — starting with:
+
+```
+r₀ = n    s₀ = 1    t₀ = 0
+r₁ = α    s₁ = 0    t₁ = 1
+```
+
+At each step, compute the quotient qᵢ = ⌊rᵢ₋₁ / rᵢ⌋ and update:
+
+```
+rᵢ₊₁ = rᵢ₋₁ − qᵢ · rᵢ
+sᵢ₊₁ = sᵢ₋₁ − qᵢ · sᵢ
+tᵢ₊₁ = tᵢ₋₁ − qᵢ · tᵢ
+```
+
+Stop when rᵢ₊₁ = 0. The last nonzero remainder is the gcd, and its corresponding **t** value is the inverse (mod n).
+
+### Step-by-step example: α = 3, n = 26
+
+| i | rᵢ | sᵢ | tᵢ | qᵢ |
+|---|----|----|-----|-----|
+| 0 | 26 | 1  | 0   | —   |
+| 1 | 3  | 0  | 1   | —   |
+| 2 | 2  | 1  | −8  | 8   |
+| 3 | 1  | −1 | 9   | 1   |
+| 4 | 0  | 3  | −26 | 2   |
+
+At i = 3 the remainder reaches 1 (the gcd). The corresponding t value is **9**.
+
+**Verification:** (−1) · 26 + 9 · 3 = −26 + 27 = 1 ✓
+
+Therefore α⁻¹ ≡ 9 (mod 26), and:
+
+- e_k(x) = (3 · x + 5) mod 26
+- d_k(y) = 9 · (y − 5) mod 26
+
+### Computing i = 2 in detail
+
+```
+q₂ = ⌊r₀ / r₁⌋ = ⌊26 / 3⌋ = 8
+
+r₂ = r₀ − q₂ · r₁ = 26 − 8 · 3 = 2
+s₂ = s₀ − q₂ · s₁ = 1 − 8 · 0 = 1
+t₂ = t₀ − q₂ · t₁ = 0 − 8 · 1 = −8
+```
+
+Check: s₂ · 26 + t₂ · 3 = 1 · 26 + (−8) · 3 = 26 − 24 = 2 = r₂ ✓
+
+### Computing i = 3
+
+```
+q₃ = ⌊r₁ / r₂⌋ = ⌊3 / 2⌋ = 1
+
+r₃ = r₁ − q₃ · r₂ = 3 − 1 · 2 = 1
+s₃ = s₁ − q₃ · s₂ = 0 − 1 · 1 = −1
+t₃ = t₁ − q₃ · t₂ = 1 − 1 · (−8) = 9
+```
+
+Check: (−1) · 26 + 9 · 3 = −26 + 27 = 1 = r₃ ✓
+
+---
+
+## Why back-substitution works
+
+Each row maintains the invariant **sᵢ · n + tᵢ · α = rᵢ**. Since the recurrence is a linear combination of the two previous rows, the invariant propagates automatically. When the remainder reaches gcd(α, n) = 1, we have our Bézout coefficients.
+
+---
+
+## When the inverse does not exist
+
+If gcd(α, n) ≠ 1 the algorithm terminates with a remainder greater than 1. In that case no t satisfies α · t ≡ 1 (mod n), and the affine cipher cannot be used with those parameters — the encryption function would not be bijective.
+
+**Example:** α = 4, n = 26 → gcd(4, 26) = 2.
+
+| i | rᵢ | sᵢ | tᵢ | qᵢ |
+|---|----|----|-----|-----|
+| 0 | 26 | 1  | 0   | —   |
+| 1 | 4  | 0  | 1   | —   |
+| 2 | 2  | 1  | −6  | 6   |
+| 3 | 0  | −2 | 13  | 2   |
+
+The last nonzero remainder is **2**, not 1 — no inverse exists.
+
+---
+
+## Rust source — compiled to WebAssembly
+
+The computation logic runs in the browser as a WASM module built from Rust. The crate lives at `crates/affine/` and exposes a single `compute(α, β, n)` function via `wasm-bindgen` that returns structured JSON with the Euclidean division steps, back-substitution coefficients, and the modular inverse.
+
+### Floor division
+
+JavaScript's `Math.floor(a / b)` floors toward −∞, while Rust's integer division truncates toward zero. This helper matches the JS semantics:
+
+```rust
+fn floor_div(a: i64, b: i64) -> i64 {
+    let d = a / b;
+    let r = a % b;
+    if r != 0 && ((r ^ b) < 0) {
+        d - 1
+    } else {
+        d
+    }
+}
+```
+
+### Modular inverse
+
+The Extended Euclidean Algorithm expressed as an iterative loop tracking the Bézout coefficient **t**:
+
+```rust
+fn mod_inverse(a: i64, n: i64) -> i64 {
+    let (mut r0, mut r1) = (n, a);
+    let (mut t0, mut t1): (i64, i64) = (0, 1);
+
+    while r1 != 0 {
+        let q = floor_div(r0, r1);
+        let tmp_r = r1;
+        r1 = r0 - q * r1;
+        r0 = tmp_r;
+        let tmp_t = t1;
+        t1 = t0 - q * t1;
+        t0 = tmp_t;
+    }
+
+    ((t0 % n) + n) % n
+}
+```
+
+### Main compute function
+
+The entry point performs the Euclidean divisions, checks coprimality, computes the inverse, and traces the back-substitution steps — all returned as a serialized `ComputeResult`:
+
+```rust
+#[wasm_bindgen]
+pub fn compute(alpha: i64, beta: i64, n: i64) -> Result<String, String> {
+    if n <= 0 {
+        return Err("n must be greater than 0".into());
+    }
+
+    // Euclidean divisions
+    let mut remainders = vec![n, alpha];
+    let mut quotients: Vec<i64> = Vec::new();
+    let (mut a, mut b) = (n, alpha);
+
+    while b != 0 {
+        let q = floor_div(a, b);
+        let r = a - q * b;
+        quotients.push(q);
+        remainders.push(r);
+        a = b;
+        b = r;
+    }
+
+    let gcd = a;
+    let coprime = gcd == 1;
+
+    let inverse = if coprime {
+        Some(mod_inverse(alpha, n))
+    } else {
+        None
+    };
+
+    // Back-substitution (when coprime and enough steps)
+    let back_sub = if coprime && remainders.len() >= 4 {
+        let m = remainders.len() - 2;
+        let init_lo = m - 2;
+        let mut c_a: i64 = 1;
+        let mut c_b: i64 = -quotients[m - 2];
+        let mut steps = Vec::new();
+        let mut lo = init_lo;
+
+        while lo > 0 {
+            let q_sub = quotients[lo - 1];
+            let c_a_old = c_a;
+            let c_b_old = c_b;
+            let new_a = c_b;
+            let new_b = c_a - c_b * q_sub;
+            c_a = new_a;
+            c_b = new_b;
+            let new_lo = lo - 1;
+
+            steps.push(BackSubStep {
+                lo, q_sub, c_a_old, c_b_old,
+                c_a_new: c_a, c_b_new: c_b, new_lo,
+            });
+
+            lo = new_lo;
+        }
+
+        Some(BackSub {
+            init_lo, init_c_a: 1, init_c_b: -quotients[m - 2], steps,
+        })
+    } else {
+        None
+    };
+
+    serde_json::to_string(&ComputeResult {
+        alpha, beta, n, remainders, quotients,
+        gcd, coprime, inverse, back_sub,
+    }).map_err(|e| e.to_string())
+}
+```
+
+### Result structures
+
+```rust
+#[derive(Serialize)]
+pub struct ComputeResult {
+    pub alpha: i64,
+    pub beta: i64,
+    pub n: i64,
+    pub remainders: Vec<i64>,
+    pub quotients: Vec<i64>,
+    pub gcd: i64,
+    pub coprime: bool,
+    pub inverse: Option<i64>,
+    pub back_sub: Option<BackSub>,
+}
+
+#[derive(Serialize)]
+pub struct BackSub {
+    pub init_lo: usize,
+    pub init_c_a: i64,
+    pub init_c_b: i64,
+    pub steps: Vec<BackSubStep>,
+}
+
+#[derive(Serialize)]
+pub struct BackSubStep {
+    pub lo: usize,
+    pub q_sub: i64,
+    pub c_a_old: i64,
+    pub c_b_old: i64,
+    pub c_a_new: i64,
+    pub c_b_new: i64,
+    pub new_lo: usize,
+}
+```
+
+The JavaScript side loads the WASM module, calls `compute()`, parses the JSON, and renders the step-by-step HTML — keeping the presentation layer in the browser while the math runs in compiled WebAssembly.

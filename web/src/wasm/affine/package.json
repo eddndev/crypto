@@ -1,0 +1,15 @@
+{
+  "name": "affine",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "affine_bg.wasm",
+    "affine.js",
+    "affine.d.ts"
+  ],
+  "main": "affine.js",
+  "types": "affine.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

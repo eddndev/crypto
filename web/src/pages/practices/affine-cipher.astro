@@ -1,0 +1,389 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { render } from 'astro:content';
+import { getEntry } from 'astro:content';
+
+const entry = await getEntry('practices', 'affine-cipher');
+const { Content } = await render(entry!);
+---
+
+<Base title="Affine Cipher — Intro to Cryptography" description="Compute affine cipher encryption and decryption functions using the Extended Euclidean Algorithm.">
+  <Header />
+  <main class="pt-28 pb-24 relative overflow-hidden">
+    <div id="blob-container" class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true"></div>
+
+    <div class="relative mx-auto w-full max-w-[1200px] px-8">
+
+      <!-- Breadcrumb + Intro -->
+      <div class="affine-intro mb-16">
+        <a href="/#practices" class="inline-flex items-center gap-2 font-mono text-[0.8rem] text-text-secondary hover:text-accent transition-colors duration-200 mb-8">
+          <span>←</span> Back to practices
+        </a>
+        <span class="block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3">Practice 01</span>
+        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-[-0.02em] uppercase mb-4">AFFINE CIPHER</h1>
+        <p class="text-text-secondary text-[1.05rem] leading-relaxed max-w-[640px]">
+          Enter the parameters of the affine cipher — α, β and n — to compute the encryption
+          and decryption functions. The multiplicative inverse of α is found using the Extended
+          Euclidean Algorithm, shown step by step.
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-0 mb-0">
+        <button id="tab-compute" class="tab-btn active font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200">
+          COMPUTE
+        </button>
+        <button id="tab-writeup" class="tab-btn font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200">
+          WRITEUP
+        </button>
+      </div>
+
+      <!-- Compute Panel -->
+      <div id="panel-compute" class="panel bg-[#13131a]/80 backdrop-blur-sm border border-[#3a3a42] p-8 max-md:p-5">
+        <div class="grid grid-cols-[1fr_1.6fr] max-md:grid-cols-1 gap-8">
+          <!-- Left: Inputs -->
+          <div class="flex flex-col gap-6">
+            <div>
+              <label class="block font-mono text-[0.75rem] text-[#a0a0aa] uppercase tracking-[0.08em] mb-3">Parameters</label>
+              <div class="flex flex-col gap-3">
+                <div>
+                  <label class="block font-mono text-[0.7rem] text-[#a0a0aa] mb-1.5">α (alpha)</label>
+                  <input type="number" id="input-alpha" value="3" class="param-input w-full bg-[#0c0c12] border border-[#3a3a42] p-3 font-mono text-[0.95rem] text-text-primary text-center focus:outline-none focus:border-accent transition-colors duration-200" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[0.7rem] text-[#a0a0aa] mb-1.5">β (beta)</label>
+                  <input type="number" id="input-beta" value="5" class="param-input w-full bg-[#0c0c12] border border-[#3a3a42] p-3 font-mono text-[0.95rem] text-text-primary text-center focus:outline-none focus:border-accent transition-colors duration-200" />
+                </div>
+                <div>
+                  <label class="block font-mono text-[0.7rem] text-[#a0a0aa] mb-1.5">n (modulus)</label>
+                  <input type="number" id="input-n" value="26" min="1" class="param-input w-full bg-[#0c0c12] border border-[#3a3a42] p-3 font-mono text-[0.95rem] text-text-primary text-center focus:outline-none focus:border-accent transition-colors duration-200" />
+                </div>
+              </div>
+            </div>
+            <button id="compute-btn" class="font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-accent-deep text-white border-none cursor-pointer transition-all duration-200 hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed">
+              COMPUTE
+            </button>
+          </div>
+
+          <!-- Right: Results -->
+          <div class="flex flex-col">
+            <span id="result-placeholder" class="font-mono text-[0.8rem] text-text-secondary/60 self-center mt-16">Enter parameters and click compute</span>
+            <div id="result-content" class="hidden flex flex-col gap-5">
+
+              <!-- Validation -->
+              <div id="validation-box" class="flex items-center gap-2.5 p-4 border border-[#3a3a42] bg-[#0c0c12]">
+                <span id="val-dot" class="w-2.5 h-2.5 rounded-full shrink-0"></span>
+                <span id="val-text" class="font-mono text-[0.85rem]"></span>
+              </div>
+
+              <!-- ek -->
+              <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
+                <span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Encryption function</span>
+                <div id="ek-display" class="font-mono text-[1.05rem] text-accent"></div>
+              </div>
+
+              <!-- Euclidean Algorithm + Back-substitution -->
+              <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
+                <div id="euclid-section"></div>
+              </div>
+
+              <!-- Inverse -->
+              <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
+                <span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Multiplicative inverse</span>
+                <div id="inv-display" class="font-mono text-[0.95rem]"></div>
+              </div>
+
+              <!-- dk -->
+              <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
+                <span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Decryption function</span>
+                <div id="dk-display" class="font-mono text-[1.05rem]"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Writeup Panel -->
+      <div id="panel-writeup" class="panel bg-[#13131a]/80 backdrop-blur-sm border border-[#3a3a42] p-8 max-md:p-5 hidden">
+        <div class="prose max-w-none">
+          <Content />
+        </div>
+      </div>
+
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .tab-btn {
+    background: #18181f;
+    color: #7a7a85;
+  }
+  .tab-btn:hover:not(.active) {
+    color: var(--color-text-primary);
+    background: #22222a;
+  }
+  .tab-btn.active {
+    background: var(--color-accent-deep);
+    color: white;
+  }
+  .param-input::-webkit-outer-spin-button,
+  .param-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .param-input[type='number'] {
+    -moz-appearance: textfield;
+  }
+  .algo-line {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.9;
+    white-space: pre;
+  }
+  .algo-line .dim { color: #555560; }
+  .algo-line .val { color: var(--color-text-primary); }
+  .algo-line .hi  { color: var(--color-accent); font-weight: 600; }
+  .algo-line .ok  { color: #4ade80; font-weight: 600; }
+  .algo-line .err { color: #f87171; font-weight: 600; }
+  .back-sub-line {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    line-height: 1.9;
+  }
+</style>
+
+<script>
+  async function init() {
+    // --- Load WASM ---
+    const wasm = await import('../../wasm/affine/affine.js');
+    await wasm.default();
+
+    // --- DOM refs ---
+    const tabs = ['compute', 'writeup'].map(name => ({
+      btn: document.getElementById(`tab-${name}`)!,
+      panel: document.getElementById(`panel-${name}`)!,
+    }));
+
+    const inputAlpha = document.getElementById('input-alpha') as HTMLInputElement;
+    const inputBeta = document.getElementById('input-beta') as HTMLInputElement;
+    const inputN = document.getElementById('input-n') as HTMLInputElement;
+    const computeBtn = document.getElementById('compute-btn') as HTMLButtonElement;
+    const resultPlaceholder = document.getElementById('result-placeholder')!;
+    const resultContent = document.getElementById('result-content')!;
+    const valDot = document.getElementById('val-dot')!;
+    const valText = document.getElementById('val-text')!;
+    const ekDisplay = document.getElementById('ek-display')!;
+    const euclidSection = document.getElementById('euclid-section')!;
+    const invDisplay = document.getElementById('inv-display')!;
+    const dkDisplay = document.getElementById('dk-display')!;
+
+    // --- Format helpers ---
+    function term(coeff: number, value: number | string): string {
+      const v = String(value);
+      if (coeff === 1) return `<span class="val">${v}</span>`;
+      if (coeff === -1) return `<span class="val">${v}</span>`;
+      return `<span class="hi">${Math.abs(coeff)}</span><span class="dim"> · </span><span class="val">${v}</span>`;
+    }
+
+    function signedTerm(coeff: number, value: number | string, isFirst: boolean): string {
+      if (isFirst) {
+        if (coeff < 0) return `<span class="dim">−</span>${term(coeff, value)}`;
+        return term(coeff, value);
+      }
+      if (coeff > 0) return ` <span class="dim">+</span> ${term(coeff, value)}`;
+      return ` <span class="dim">−</span> ${term(coeff, value)}`;
+    }
+
+    function linearComb(cA: number, rA: number, cB: number, rB: number): string {
+      if (cA < 0 && cB >= 0) {
+        return signedTerm(cB, rB, true) + signedTerm(cA, rA, false);
+      }
+      return signedTerm(cA, rA, true) + signedTerm(cB, rB, false);
+    }
+
+    // --- Compute (calls WASM) ---
+    function compute() {
+      const alpha = parseInt(inputAlpha.value) || 0;
+      const beta = parseInt(inputBeta.value) || 0;
+      const n = parseInt(inputN.value) || 0;
+
+      if (n <= 0) {
+        resultPlaceholder.textContent = 'n must be greater than 0';
+        resultPlaceholder.classList.remove('hidden');
+        resultContent.classList.add('hidden');
+        return;
+      }
+
+      // Call Rust/WASM
+      let result: any;
+      try {
+        const json = wasm.compute(BigInt(alpha), BigInt(beta), BigInt(n));
+        result = JSON.parse(json);
+      } catch (e: any) {
+        resultPlaceholder.textContent = e.message || String(e);
+        resultPlaceholder.classList.remove('hidden');
+        resultContent.classList.add('hidden');
+        return;
+      }
+
+      const { remainders, quotients, gcd: g, coprime, inverse } = result;
+
+      // Show results
+      resultPlaceholder.classList.add('hidden');
+      resultContent.classList.remove('hidden');
+
+      // Validation
+      valDot.className = `w-2.5 h-2.5 rounded-full shrink-0 ${coprime ? 'bg-green-500' : 'bg-red-500'}`;
+      valText.innerHTML = `gcd(${alpha}, ${n}) = ${g} &mdash; <span class="${coprime ? 'text-green-400' : 'text-red-400'} font-semibold">${coprime ? 'COPRIME' : 'NOT COPRIME'}</span>`;
+
+      // ek
+      ekDisplay.innerHTML = `e<sub>k</sub>(x) = (${alpha} &middot; x + ${beta}) mod ${n}`;
+
+      // --- Build Euclidean division lines ---
+      const maxA = Math.max(...quotients.map((_: number, i: number) => remainders[i]));
+      const pad = String(maxA).length;
+
+      let divHTML = '<span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Euclidean divisions</span>';
+
+      for (let i = 0; i < quotients.length; i++) {
+        const aStr = String(remainders[i]).padStart(pad);
+        const bStr = String(remainders[i + 1]);
+        const qStr = String(quotients[i]);
+        const rVal = remainders[i + 2];
+        const rClass = rVal === g && coprime ? 'ok' : (rVal === 0 ? 'dim' : 'val');
+
+        divHTML += `<div class="algo-line"><span class="val">${aStr}</span> <span class="dim">=</span> <span class="val">${bStr}</span><span class="dim"> · </span><span class="hi">${qStr}</span><span class="dim"> + </span><span class="${rClass}">${rVal}</span></div>`;
+      }
+
+      // --- Build back-substitution lines from WASM data ---
+      let backHTML = '';
+      const bs = result.back_sub;
+
+      if (coprime && bs) {
+        backHTML += '<hr class="border-[#3a3a42] my-4" />';
+        backHTML += '<span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Back-substitution</span>';
+
+        let lo = bs.init_lo;
+        let cA = bs.init_c_a;
+        let cB = bs.init_c_b;
+
+        // First line: gcd = cA·r[lo] ± cB·r[lo+1]
+        backHTML += `<div class="back-sub-line"><span class="ok">${g}</span> <span class="dim">=</span> ${linearComb(cA, remainders[lo], cB, remainders[lo + 1])}</div>`;
+
+        for (const step of bs.steps) {
+          const qSub = step.q_sub;
+
+          // Substitution line: show the replacement inside parens
+          const parenInner = `<span class="val">${remainders[lo - 1]}</span><span class="dim"> − </span><span class="hi">${qSub}</span><span class="dim"> · </span><span class="val">${remainders[lo]}</span>`;
+
+          let subLine = '<span class="dim">&nbsp;&nbsp;=</span> ';
+
+          const cA_first = (cA >= 0 && cB < 0) || (cA >= 0 && cB >= 0);
+
+          if (cA_first) {
+            subLine += signedTerm(cA, remainders[lo], true);
+            if (cB > 0) subLine += ` <span class="dim">+</span> `;
+            else subLine += ` <span class="dim">−</span> `;
+            const absCB = Math.abs(cB);
+            if (absCB !== 1) subLine += `<span class="hi">${absCB}</span><span class="dim"> · </span>`;
+            subLine += `<span class="dim">(</span>${parenInner}<span class="dim">)</span>`;
+          } else {
+            if (Math.abs(cB) !== 1) subLine += `<span class="hi">${Math.abs(cB)}</span><span class="dim"> · </span>`;
+            subLine += `<span class="dim">(</span>${parenInner}<span class="dim">)</span>`;
+            subLine += ` <span class="dim">−</span> `;
+            const absCA = Math.abs(cA);
+            if (absCA !== 1) subLine += `<span class="hi">${absCA}</span><span class="dim"> · </span>`;
+            subLine += `<span class="val">${remainders[lo]}</span>`;
+          }
+
+          backHTML += `<div class="back-sub-line">${subLine}</div>`;
+
+          // Update coefficients from WASM result
+          cA = step.c_a_new;
+          cB = step.c_b_new;
+          lo = step.new_lo;
+
+          // Collected / simplified line
+          backHTML += `<div class="back-sub-line"><span class="dim">&nbsp;&nbsp;=</span> ${linearComb(cA, remainders[lo], cB, remainders[lo + 1])}</div>`;
+        }
+      }
+
+      euclidSection.innerHTML = divHTML + backHTML;
+
+      // --- Inverse ---
+      if (coprime && inverse != null) {
+        const inv = inverse;
+        invDisplay.innerHTML = `&alpha;<sup>&minus;1</sup> &equiv; <span class="text-accent font-semibold">${inv}</span> (mod ${n})<span class="text-text-secondary text-[0.82rem] ml-3">&rarr; ${alpha} &middot; ${inv} = ${alpha * inv} &equiv; 1 (mod ${n})</span>`;
+        dkDisplay.innerHTML = `d<sub>k</sub>(y) = ${inv} &middot; (y &minus; ${beta}) mod ${n}`;
+        dkDisplay.className = 'font-mono text-[1.05rem] text-accent';
+      } else {
+        invDisplay.innerHTML = `<span class="text-red-400">&alpha;<sup>&minus;1</sup> does not exist &mdash; &alpha; and n are not coprime</span>`;
+        dkDisplay.innerHTML = `<span class="text-red-400">&mdash;</span>`;
+        dkDisplay.className = 'font-mono text-[1.05rem]';
+      }
+
+      regenerateBlobs();
+    }
+
+    // --- Tab switching ---
+    tabs.forEach((current, i) => {
+      current.btn.addEventListener('click', () => {
+        tabs.forEach((t, j) => {
+          t.btn.classList.toggle('active', i === j);
+          t.panel.classList.toggle('hidden', i !== j);
+        });
+        regenerateBlobs();
+      });
+    });
+
+    // --- Events ---
+    computeBtn.addEventListener('click', compute);
+    [inputAlpha, inputBeta, inputN].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') compute();
+      });
+    });
+
+    // --- Dynamic background blobs ---
+    const blobContainer = document.getElementById('blob-container')!;
+    const BLOB_SPACING = 500;
+    const blobPresets = [
+      { color: '#1a1a4e', size: 600, opacity: 0.40, blur: 150, x: 10 },
+      { color: '#1e1b4b', size: 500, opacity: 0.30, blur: 140, x: 75 },
+      { color: '#172044', size: 450, opacity: 0.35, blur: 130, x: 35 },
+    ];
+
+    function regenerateBlobs() {
+      requestAnimationFrame(() => {
+        const mainEl = blobContainer.parentElement!;
+        const totalHeight = mainEl.scrollHeight;
+        const needed = Math.max(2, Math.ceil(totalHeight / BLOB_SPACING));
+        blobContainer.innerHTML = '';
+        for (let i = 0; i < needed; i++) {
+          const preset = blobPresets[i % blobPresets.length];
+          const blob = document.createElement('div');
+          blob.style.cssText = `position:absolute;top:${i * BLOB_SPACING}px;left:${preset.x}%;width:${preset.size}px;height:${preset.size}px;border-radius:50%;background:${preset.color};opacity:${preset.opacity};filter:blur(${preset.blur}px);transform:translateX(-50%)`;
+          blobContainer.appendChild(blob);
+        }
+      });
+    }
+
+    regenerateBlobs();
+
+    // --- GSAP fade-in ---
+    if (typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      import('gsap').then(({ gsap }) => {
+        gsap.from('.affine-intro', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' });
+        gsap.from('.tab-btn', { opacity: 0, y: 10, duration: 0.4, delay: 0.3, stagger: 0.1, ease: 'power2.out' });
+        gsap.from('.panel', { opacity: 0, y: 15, duration: 0.5, delay: 0.5, ease: 'power2.out' });
+      }).catch(() => {});
+    }
+  }
+
+  init();
+</script>
