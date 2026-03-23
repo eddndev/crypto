@@ -81,7 +81,7 @@ const { Content } = await render(entry!);
               <!-- ek -->
               <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
                 <span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Encryption function</span>
-                <div id="ek-display" class="font-mono text-[1.05rem] text-accent"></div>
+                <div id="ek-display" class="font-mono text-[1.05rem] text-accent flex items-center"></div>
               </div>
 
               <!-- Euclidean Algorithm + Back-substitution -->
@@ -98,7 +98,7 @@ const { Content } = await render(entry!);
               <!-- dk -->
               <div class="p-4 border border-[#3a3a42] bg-[#0c0c12]">
                 <span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Decryption function</span>
-                <div id="dk-display" class="font-mono text-[1.05rem]"></div>
+                <div id="dk-display" class="font-mono text-[1.05rem] flex items-center"></div>
               </div>
 
             </div>
@@ -154,6 +154,21 @@ const { Content } = await render(entry!);
     font-family: var(--font-mono);
     font-size: 0.88rem;
     line-height: 1.9;
+  }
+  .fn-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.65rem;
+    height: 1.65rem;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin-right: 0.45rem;
+    flex-shrink: 0;
   }
 </style>
 
@@ -242,7 +257,7 @@ const { Content } = await render(entry!);
       valText.innerHTML = `gcd(${alpha}, ${n}) = ${g} &mdash; <span class="${coprime ? 'text-green-400' : 'text-red-400'} font-semibold">${coprime ? 'COPRIME' : 'NOT COPRIME'}</span>`;
 
       // ek
-      ekDisplay.innerHTML = `e<sub>k</sub>(x) = (${alpha} &middot; x + ${beta}) mod ${n}`;
+      ekDisplay.innerHTML = `<span class="fn-badge">E<sub>k</sub></span>(x) = (${alpha} &middot; x + ${beta}) mod ${n}`;
 
       // --- Build Euclidean division lines ---
       const maxA = Math.max(...quotients.map((_: number, i: number) => remainders[i]));
@@ -258,6 +273,20 @@ const { Content } = await render(entry!);
         const rClass = rVal === g && coprime ? 'ok' : (rVal === 0 ? 'dim' : 'val');
 
         divHTML += `<div class="algo-line"><span class="val">${aStr}</span> <span class="dim">=</span> <span class="val">${bStr}</span><span class="dim"> · </span><span class="hi">${qStr}</span><span class="dim"> + </span><span class="${rClass}">${rVal}</span></div>`;
+      }
+
+      // --- Build transformation equations from WASM data ---
+      let transHTML = '';
+      const teqs = result.transform_eqs;
+
+      if (teqs && teqs.length > 0) {
+        transHTML += '<hr class="border-[#3a3a42] my-4" />';
+        transHTML += '<span class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">Transformation equations</span>';
+
+        for (const eq of teqs) {
+          const rClass = eq.remainder === g && coprime ? 'ok' : 'val';
+          transHTML += `<div class="algo-line"><span class="${rClass}">${eq.remainder}</span> <span class="dim">=</span> <span class="val">${eq.dividend}</span><span class="dim"> − </span><span class="hi">${eq.quotient}</span><span class="dim"> · </span><span class="val">${eq.divisor}</span></div>`;
+        }
       }
 
       // --- Build back-substitution lines from WASM data ---
@@ -313,18 +342,18 @@ const { Content } = await render(entry!);
         }
       }
 
-      euclidSection.innerHTML = divHTML + backHTML;
+      euclidSection.innerHTML = divHTML + transHTML + backHTML;
 
       // --- Inverse ---
       if (coprime && inverse != null) {
         const inv = inverse;
         invDisplay.innerHTML = `&alpha;<sup>&minus;1</sup> &equiv; <span class="text-accent font-semibold">${inv}</span> (mod ${n})<span class="text-text-secondary text-[0.82rem] ml-3">&rarr; ${alpha} &middot; ${inv} = ${alpha * inv} &equiv; 1 (mod ${n})</span>`;
-        dkDisplay.innerHTML = `d<sub>k</sub>(y) = ${inv} &middot; (y &minus; ${beta}) mod ${n}`;
-        dkDisplay.className = 'font-mono text-[1.05rem] text-accent';
+        dkDisplay.innerHTML = `<span class="fn-badge">D<sub>k</sub></span>(y) = ${inv} &middot; (y &minus; ${beta}) mod ${n}`;
+        dkDisplay.className = 'font-mono text-[1.05rem] text-accent flex items-center';
       } else {
         invDisplay.innerHTML = `<span class="text-red-400">&alpha;<sup>&minus;1</sup> does not exist &mdash; &alpha; and n are not coprime</span>`;
         dkDisplay.innerHTML = `<span class="text-red-400">&mdash;</span>`;
-        dkDisplay.className = 'font-mono text-[1.05rem]';
+        dkDisplay.className = 'font-mono text-[1.05rem] flex items-center';
       }
 
       regenerateBlobs();

@@ -11,7 +11,19 @@ pub struct ComputeResult {
     pub gcd: i64,
     pub coprime: bool,
     pub inverse: Option<i64>,
+    pub transform_eqs: Vec<TransformEq>,
     pub back_sub: Option<BackSub>,
+}
+
+/// Transformation equation: isolates the remainder from a Euclidean division.
+/// From `dividend = divisor · quotient + remainder` we get
+/// `remainder = dividend − quotient · divisor`.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TransformEq {
+    pub remainder: i64,
+    pub dividend: i64,
+    pub divisor: i64,
+    pub quotient: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -92,6 +104,20 @@ pub fn compute(alpha: i64, beta: i64, n: i64) -> Result<String, String> {
     let gcd = a;
     let coprime = gcd == 1;
 
+    // --- Transformation equations ---
+    // For each division a = b·q + r where r ≠ 0, produce r = a − q·b
+    let transform_eqs: Vec<TransformEq> = quotients
+        .iter()
+        .enumerate()
+        .filter(|&(i, _)| remainders[i + 2] != 0)
+        .map(|(i, &q)| TransformEq {
+            remainder: remainders[i + 2],
+            dividend: remainders[i],
+            divisor: remainders[i + 1],
+            quotient: q,
+        })
+        .collect();
+
     // --- Modular inverse ---
     let inverse = if coprime {
         Some(mod_inverse(alpha, n))
@@ -158,6 +184,7 @@ pub fn compute(alpha: i64, beta: i64, n: i64) -> Result<String, String> {
         gcd,
         coprime,
         inverse,
+        transform_eqs,
         back_sub,
     };
 
@@ -228,6 +255,24 @@ mod tests {
         // 2 = 1·2 + 0
         assert_eq!(result.remainders, vec![26, 3, 2, 1, 0]);
         assert_eq!(result.quotients, vec![8, 1, 2]);
+    }
+
+    #[test]
+    fn test_transform_eqs() {
+        let json = compute(3, 5, 26).unwrap();
+        let result: ComputeResult = serde_json::from_str(&json).unwrap();
+        // 26 = 3·8 + 2  →  2 = 26 − 8·3
+        // 3 = 2·1 + 1   →  1 = 3 − 1·2
+        // 2 = 1·2 + 0   →  (skipped, remainder = 0)
+        assert_eq!(result.transform_eqs.len(), 2);
+        assert_eq!(result.transform_eqs[0].remainder, 2);
+        assert_eq!(result.transform_eqs[0].dividend, 26);
+        assert_eq!(result.transform_eqs[0].divisor, 3);
+        assert_eq!(result.transform_eqs[0].quotient, 8);
+        assert_eq!(result.transform_eqs[1].remainder, 1);
+        assert_eq!(result.transform_eqs[1].dividend, 3);
+        assert_eq!(result.transform_eqs[1].divisor, 2);
+        assert_eq!(result.transform_eqs[1].quotient, 1);
     }
 
     #[test]
