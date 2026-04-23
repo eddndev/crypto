@@ -151,7 +151,25 @@ export function stampSlotIntoDraft(
   if (slot.kind === 'scalar') {
     return stampValuesIntoDraft(draft, 1, 1, [[slot.value]], anchorRow, anchorCol);
   }
-  return stampValuesIntoDraft(draft, slot.rows, slot.cols, slot.data, anchorRow, anchorCol);
+  // Matrix payloads REPLACE the draft entirely (dimensions + values).
+  return draftFromValues(slot.rows, slot.cols, slot.data);
+}
+
+/** Build a fresh draft from numeric values. Used when a matrix payload replaces an input. */
+export function draftFromValues(
+  rows: number,
+  cols: number,
+  data: number[][],
+): MatrixDraft {
+  const r = Math.min(MAX_DIM, Math.max(1, rows));
+  const c = Math.min(MAX_DIM, Math.max(1, cols));
+  const cells: string[][] = [];
+  for (let i = 0; i < r; i++) {
+    const row: string[] = [];
+    for (let j = 0; j < c; j++) row.push(String(data[i]?.[j] ?? 0));
+    cells.push(row);
+  }
+  return { rows: r, cols: c, cells };
 }
 
 /** Extract a plain {rows, cols, data} from an atom, or null if not stampable. */

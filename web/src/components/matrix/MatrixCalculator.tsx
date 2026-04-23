@@ -3,6 +3,7 @@ import type { MatrixDraft, OpResponse, SlotBank, SlotValue } from './types';
 import {
   atomToSlotValue,
   atomToValues,
+  draftFromValues,
   emptyDraft,
   resolveMatrix,
   SLOT_COUNT,
@@ -152,16 +153,13 @@ export default function MatrixCalculator() {
   );
 
   const handleDraftCrossDrop = useCallback(
-    (target: DraftSource, from: DraftSource, row: number, col: number) => {
+    (target: DraftSource, from: DraftSource, _row: number, _col: number) => {
       if (from === target) return;
       const srcDraft = from === 'A' ? state.a : state.b;
-      const dst = target === 'A' ? state.a : state.b;
       try {
         const resolved = resolveMatrix(srcDraft, state.slots);
-        dispatchDraftFor(
-          target,
-          stampValuesIntoDraft(dst, resolved.rows, resolved.cols, resolved.data, row, col),
-        );
+        // Drafts are always multi-cell matrices — replace the destination entirely.
+        dispatchDraftFor(target, draftFromValues(resolved.rows, resolved.cols, resolved.data));
       } catch (e) {
         dispatch({
           type: 'setError',
@@ -179,11 +177,18 @@ export default function MatrixCalculator() {
       if (!state.response) return;
       const values = atomToValues(state.response.result);
       if (!values) return;
-      const dst = target === 'A' ? state.a : state.b;
-      dispatchDraftFor(
-        target,
-        stampValuesIntoDraft(dst, values.rows, values.cols, values.data, row, col),
-      );
+      const atom = state.response.result;
+      // Scalar results stamp a single cell at the anchor; matrix/rref results
+      // replace the destination entirely (dimensions + values).
+      if (atom.type === 'scalar') {
+        const dst = target === 'A' ? state.a : state.b;
+        dispatchDraftFor(
+          target,
+          stampValuesIntoDraft(dst, values.rows, values.cols, values.data, row, col),
+        );
+      } else {
+        dispatchDraftFor(target, draftFromValues(values.rows, values.cols, values.data));
+      }
     },
     [state.a, state.b, state.response, dispatchDraftFor],
   );
