@@ -1,0 +1,155 @@
+---
+title: "Matrix Calculator"
+description: "Modular matrix algebra with reusable result slots"
+tags: ["linear algebra", "modular", "matrix", "hill"]
+order: 3
+draft: false
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## A calculator for ℤ/Nℤ
+
+Every value in the workspace is an integer reduced modulo **N**. Pick `N`, build matrices
+with any shape you need (1×1 up to 6×6), and choose an operation. The result is either a
+scalar, a matrix, or — for linear systems — a structured answer with the solution space.
+
+The calculator is not just an evaluator: it is designed for **chained computations**. Any
+result can be saved into one of ten **slots** (`S0 … S9`). A saved slot can then be used
+in a later matrix as:
+
+- `Sk` — substitutes the full scalar (only when the slot holds a scalar),
+- `Sk[i, j]` — substitutes one cell of a saved matrix (0-indexed).
+
+This is the same mental loop you use on paper: compute an intermediate (say the inverse
+of the determinant), give it a name, and plug it back in without rewriting.
+
+## Unit pivots
+
+Over the real numbers every nonzero element has an inverse. Over ℤ/Nℤ only **units**
+do — integers `a` with `gcd(a, N) = 1`. That one fact controls everything else.
+
+| Concept | Over ℝ | Over ℤ/Nℤ |
+|---|---|---|
+| Row scaling | divide by any nonzero pivot | pivot must be a unit |
+| Matrix invertibility | `det A ≠ 0` | `gcd(det A, N) = 1` |
+| Unique RREF | always | only when `N` is prime |
+| Rank | well-defined | well-defined for `N` prime; care required otherwise |
+
+When `N` is prime, ℤ/Nℤ is a field and everything behaves like classical linear algebra.
+When `N` is composite there are zero-divisors, and the calculator warns you explicitly:
+results of RREF, rank, and null-space may depend on pivot choices.
+
+## Inverse via adjugate
+
+For a square matrix `A` with `gcd(det A, N) = 1`:
+
+```
+A⁻¹ ≡ (det A)⁻¹ · adj(A)   (mod N)
+```
+
+The adjugate is the transpose of the cofactor matrix. The calculator computes both and
+shows the cofactor expansion step by step. The modular inverse of the determinant is
+exactly the Extended Euclidean Algorithm from **Practice 01** — the same tool, applied
+to one number instead of a pair.
+
+### Worked example (Hill 2×2 mod 26)
+
+Take `K = [[3, 3], [2, 5]]` over the Latin alphabet (`N = 26`):
+
+1. `det K = 3·5 − 3·2 = 9`
+2. `gcd(9, 26) = 1` → invertible.
+3. `9⁻¹ ≡ 3 (mod 26)` (since `9·3 = 27 ≡ 1`).
+4. `adj K = [[5, −3], [−2, 3]] ≡ [[5, 23], [24, 3]] (mod 26)`
+5. `K⁻¹ ≡ 3 · [[5, 23], [24, 3]] ≡ [[15, 17], [20, 9]] (mod 26)`
+
+Verify: `K · K⁻¹ ≡ I₂ (mod 26)`.
+
+## Non-square matrices
+
+`det`, `adj`, `A⁻¹`, and `Aᵖ` only make sense for square matrices. Everything else
+works for arbitrary `m × n` shapes. The calculator pivots on **RREF** for this:
+
+- **`rref(A)`** — reduced row echelon form. Pivots are chosen among units; when no unit
+  is available in a column the column is left without a pivot (a warning is emitted).
+- **`rank(A)`** — number of pivot columns of `rref(A)`.
+- **`solve Ax = b`** — runs RREF on `[A | b]` and reports:
+  - **consistency** (no pivot in the augmented column),
+  - a **particular solution** (free variables set to 0),
+  - a **homogeneous basis** (one vector per free column).
+- **`A⁻¹ right`** — a right inverse `X` with `A · X = Iₘ`. Exists when `m ≤ n` and the
+  rows of `A` are linearly independent. Computed column-by-column by solving
+  `A · xⱼ = eⱼ`.
+- **`A⁻¹ left`** — a left inverse `Y` with `Y · A = Iₙ`. Obtained as
+  `(Aᵀ right inverse)ᵀ`.
+
+## Chaining with slots — the Hill flow
+
+The slot bank is the core of why this practice exists. A typical session:
+
+1. Enter the key `K` into matrix A, operation **Aᵀ** just to normalize shape — or
+   directly compute whatever you need.
+2. Pick `det A`, click **Compute**, and **Save → S0**. Slot `S0` now holds the scalar
+   `det K` mod `N`.
+3. Build a tiny 1×1 matrix containing `S0`, pick **A⁻¹** (with N small enough), or
+   just remember `S0` and compute `S0⁻¹` outside. (A simpler path: choose **A⁻¹**
+   directly on `K` — the trace shows you the determinant, its inverse, and the
+   adjugate in one step.)
+4. Any intermediate matrix can be stored in `S1`, `S2`, … and referenced later with
+   `S1` (whole) or `S1[i, j]` (single cell).
+
+The payoff: you never re-type a number. Every multi-step derivation becomes a short
+sequence of operations whose operands are either literals or named intermediates.
+
+## The trace
+
+Every operation returns a structured trace: row operations (swap / scale / eliminate),
+pivot placements, cofactor expansions, and free-form notes. The UI renders them in
+order under the result so you can follow the derivation — the same spirit as the
+affine cipher writeup, extended to matrices.
+
+## Rust source
+
+The logic lives in `crates/matrix/` and exposes a single `op(request_json)` function
+via `wasm-bindgen`. The request is a tagged union over operations:
+
+```rust
+#[derive(Deserialize)]
+pub struct OpRequest {
+    pub kind: String,   // "add", "mul", "inv", "rref", "solve", ...
+    pub n: i64,
+    pub a: Option<Matrix>,
+    pub b: Option<Matrix>,
+    pub k: Option<i64>,
+    pub p: Option<u64>,
+    pub row_sel: Option<Vec<usize>>,
+    pub col_sel: Option<Vec<usize>>,
+}
+```
+
+RREF is the workhorse: it pivots on units first, falls back to any nonzero entry with a
+warning, and emits every row operation into the trace.
+
+```rust
+fn op_rref(a: &Matrix, n: i64, trace: &mut Vec<Step>, warnings: &mut Vec<String>)
+    -> (Matrix, Vec<usize>);
+```
+
+Inversion reuses RREF only implicitly — it goes through the adjugate path so the trace
+shows cofactor expansion directly:
+
+```rust
+A⁻¹ = (det A)⁻¹ · adj(A)   (mod N)
+```
+
+Solving `Ax = b`, right/left inverses, and rank all call RREF under the hood.
+
+## Implementation limits
+
+- Matrix dimensions capped at 6×6 in the UI to keep the trace legible.
+- Powers capped at 10 000 — fast matrix exponentiation is `O(log p)` multiplications,
+  but the trace becomes unreadable beyond that.
+- Composite moduli emit warnings but are not refused. That is intentional: seeing
+  exactly where a composite `N` breaks uniqueness is part of the lesson.

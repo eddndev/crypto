@@ -1,0 +1,174 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import MatrixCalculator from '../../components/matrix/MatrixCalculator';
+import { render } from 'astro:content';
+import { getEntry } from 'astro:content';
+
+const entry = await getEntry('practices', 'matrix-calculator');
+const { Content } = await render(entry!);
+const authors = entry!.data.authors ?? [];
+---
+
+<Base
+  title="Matrix Calculator — Intro to Cryptography"
+  description="A modular arithmetic matrix calculator with reusable result slots, built for Hill-style ciphers."
+>
+  <Header />
+  <main class="pt-28 pb-24 relative overflow-hidden">
+    <div id="blob-container" class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true"></div>
+
+    <div class="relative mx-auto w-full max-w-[1200px] px-8">
+      <!-- Breadcrumb + Intro -->
+      <div class="matrix-intro mb-16">
+        <a
+          href="/#practices"
+          class="inline-flex items-center gap-2 font-mono text-[0.8rem] text-text-secondary hover:text-accent transition-colors duration-200 mb-8"
+        >
+          <span>←</span> Back to practices
+        </a>
+        <span
+          class="block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3"
+        >Practice 02</span>
+        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-[-0.02em] uppercase mb-4">
+          MATRIX CALCULATOR
+        </h1>
+        <p class="text-text-secondary text-[1.05rem] leading-relaxed max-w-[720px]">
+          Build matrices of any shape, pick an operation, and work modulo <span class="text-accent">N</span>.
+          Save any result to a slot (<span class="text-accent">S0…S9</span>) and reuse it inside another
+          matrix — either whole (<span class="text-accent">Sk</span>) or one cell at a time
+          (<span class="text-accent">Sk[i,j]</span>). Non-square operands are supported via
+          RREF, augmented systems, and one-sided inverses.
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-0 mb-0">
+        <button
+          id="tab-workspace"
+          class="tab-btn active font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200"
+        >
+          WORKSPACE
+        </button>
+        <button
+          id="tab-writeup"
+          class="tab-btn font-mono text-[0.8rem] font-semibold tracking-[0.08em] uppercase py-3 px-6 border border-[#3a3a42] border-b-0 transition-colors duration-200"
+        >
+          WRITEUP
+        </button>
+      </div>
+
+      <!-- Workspace Panel -->
+      <div
+        id="panel-workspace"
+        class="panel bg-[#13131a]/80 backdrop-blur-sm border border-[#3a3a42] p-8 max-md:p-5"
+      >
+        <MatrixCalculator client:only="react" />
+      </div>
+
+      <!-- Writeup Panel -->
+      <div
+        id="panel-writeup"
+        class="panel bg-[#13131a]/80 backdrop-blur-sm border border-[#3a3a42] p-8 max-md:p-5 hidden"
+      >
+        {authors.length > 0 && (
+          <div class="mb-6 pb-4 border-b border-[#3a3a42]">
+            <span
+              class="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-[0.08em] mb-2"
+            >Authors</span>
+            <ul class="flex flex-wrap gap-2 list-none m-0 p-0">
+              {authors.map((name: string) => (
+                <li class="font-mono text-[0.8rem] text-text-secondary border border-[#3a3a42] px-3 py-1 bg-[#0c0c12]">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div class="prose max-w-none">
+          <Content />
+        </div>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style is:global>
+  .tab-btn {
+    background: #18181f;
+    color: #7a7a85;
+  }
+  .tab-btn:hover:not(.active) {
+    color: var(--color-text-primary);
+    background: #22222a;
+  }
+  .tab-btn.active {
+    background: var(--color-accent-deep);
+    color: white;
+  }
+  .cell-input::-webkit-outer-spin-button,
+  .cell-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+</style>
+
+<script>
+  function init() {
+    const tabs = ['workspace', 'writeup'].map((name) => ({
+      btn: document.getElementById(`tab-${name}`)!,
+      panel: document.getElementById(`panel-${name}`)!,
+    }));
+    tabs.forEach((current, i) => {
+      current.btn.addEventListener('click', () => {
+        tabs.forEach((t, j) => {
+          t.btn.classList.toggle('active', i === j);
+          t.panel.classList.toggle('hidden', i !== j);
+        });
+        regenerateBlobs();
+      });
+    });
+
+    // --- Dynamic background blobs (same palette as sibling practices) ---
+    const blobContainer = document.getElementById('blob-container')!;
+    const BLOB_SPACING = 500;
+    const blobPresets = [
+      { color: '#1a1a4e', size: 600, opacity: 0.4, blur: 150, x: 10 },
+      { color: '#1e1b4b', size: 500, opacity: 0.3, blur: 140, x: 75 },
+      { color: '#172044', size: 450, opacity: 0.35, blur: 130, x: 35 },
+    ];
+
+    function regenerateBlobs() {
+      requestAnimationFrame(() => {
+        const mainEl = blobContainer.parentElement!;
+        const totalHeight = mainEl.scrollHeight;
+        const needed = Math.max(2, Math.ceil(totalHeight / BLOB_SPACING));
+        blobContainer.innerHTML = '';
+        for (let i = 0; i < needed; i++) {
+          const preset = blobPresets[i % blobPresets.length];
+          const blob = document.createElement('div');
+          blob.style.cssText = `position:absolute;top:${i * BLOB_SPACING}px;left:${preset.x}%;width:${preset.size}px;height:${preset.size}px;border-radius:50%;background:${preset.color};opacity:${preset.opacity};filter:blur(${preset.blur}px);transform:translateX(-50%)`;
+          blobContainer.appendChild(blob);
+        }
+      });
+    }
+    regenerateBlobs();
+    // Recompute on window resize / orientation change to cover tall workspace state.
+    window.addEventListener('resize', regenerateBlobs);
+    const mo = new MutationObserver(() => regenerateBlobs());
+    mo.observe(document.getElementById('panel-workspace')!, { childList: true, subtree: true });
+
+    // --- GSAP fade-in ---
+    if (typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      import('gsap').then(({ gsap }) => {
+        gsap.from('.matrix-intro', { opacity: 0, y: 20, duration: 0.6, ease: 'power2.out' });
+        gsap.from('.tab-btn', { opacity: 0, y: 10, duration: 0.4, delay: 0.3, stagger: 0.1, ease: 'power2.out' });
+        gsap.from('.panel', { opacity: 0, y: 15, duration: 0.5, delay: 0.5, ease: 'power2.out' });
+      }).catch(() => {});
+    }
+  }
+
+  init();
+</script>

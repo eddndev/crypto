@@ -1,0 +1,157 @@
+---
+title: "Calculadora de Matrices"
+description: "Álgebra matricial modular con slots reutilizables"
+tags: ["álgebra lineal", "modular", "matriz", "hill"]
+order: 3
+draft: false
+lang: es
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## Una calculadora sobre ℤ/Nℤ
+
+Cada valor del espacio de trabajo es un entero reducido módulo **N**. Elige `N`, construye
+matrices con la forma que necesites (de 1×1 hasta 6×6) y selecciona una operación. El
+resultado puede ser un escalar, una matriz o — en el caso de sistemas lineales — una
+respuesta estructurada con el espacio de soluciones.
+
+La calculadora no es solo un evaluador: está diseñada para **encadenar cálculos**.
+Cualquier resultado puede guardarse en uno de diez **slots** (`S0 … S9`). Un slot ya
+guardado se puede usar en una matriz posterior como:
+
+- `Sk` — sustituye el escalar completo (solo si el slot guarda un escalar),
+- `Sk[i, j]` — sustituye una única celda de una matriz guardada (índices desde 0).
+
+Es el mismo ciclo mental que usas en papel: calculas un intermedio (por ejemplo el
+inverso del determinante), le pones nombre y lo vuelves a meter sin reescribir nada.
+
+## Pivotes por unidad
+
+Sobre los reales, todo elemento no nulo tiene inverso. Sobre ℤ/Nℤ solo lo tienen las
+**unidades** — enteros `a` con `gcd(a, N) = 1`. Ese único hecho controla todo lo demás.
+
+| Concepto | Sobre ℝ | Sobre ℤ/Nℤ |
+|---|---|---|
+| Escalar fila | dividir por cualquier pivote no nulo | el pivote debe ser unidad |
+| Invertibilidad | `det A ≠ 0` | `gcd(det A, N) = 1` |
+| RREF único | siempre | solo si `N` es primo |
+| Rango | bien definido | bien definido con `N` primo; cuidado si no |
+
+Cuando `N` es primo, ℤ/Nℤ es cuerpo y todo se comporta como en álgebra lineal clásica.
+Cuando `N` es compuesto aparecen divisores de cero y la calculadora te avisa
+explícitamente: los resultados de RREF, rango y núcleo pueden depender de qué pivote
+elijas.
+
+## Inversa por la adjunta
+
+Para una matriz cuadrada `A` con `gcd(det A, N) = 1`:
+
+```
+A⁻¹ ≡ (det A)⁻¹ · adj(A)   (mod N)
+```
+
+La adjunta es la transpuesta de la matriz de cofactores. La calculadora computa ambas y
+muestra la expansión por cofactores paso a paso. El inverso modular del determinante
+es exactamente el Algoritmo Euclideano Extendido de la **Práctica 01** — la misma
+herramienta, aplicada a un único número en lugar de a un par.
+
+### Ejemplo trabajado (Hill 2×2 mod 26)
+
+Toma `K = [[3, 3], [2, 5]]` sobre el alfabeto latino (`N = 26`):
+
+1. `det K = 3·5 − 3·2 = 9`
+2. `gcd(9, 26) = 1` → es invertible.
+3. `9⁻¹ ≡ 3 (mod 26)` (porque `9·3 = 27 ≡ 1`).
+4. `adj K = [[5, −3], [−2, 3]] ≡ [[5, 23], [24, 3]] (mod 26)`
+5. `K⁻¹ ≡ 3 · [[5, 23], [24, 3]] ≡ [[15, 17], [20, 9]] (mod 26)`
+
+Verifica: `K · K⁻¹ ≡ I₂ (mod 26)`.
+
+## Matrices no cuadradas
+
+`det`, `adj`, `A⁻¹` y `Aᵖ` solo tienen sentido sobre cuadradas. Todo lo demás funciona
+con cualquier forma `m × n`. La pieza central para cubrir este caso es **RREF**:
+
+- **`rref(A)`** — forma escalonada reducida por filas. Los pivotes se eligen entre las
+  unidades; si no hay unidad en una columna, se deja sin pivote (con advertencia).
+- **`rank(A)`** — número de columnas pivote de `rref(A)`.
+- **`solve Ax = b`** — ejecuta RREF sobre `[A | b]` y reporta:
+  - **consistencia** (ausencia de pivote en la columna aumentada),
+  - una **solución particular** (variables libres = 0),
+  - una **base homogénea** (un vector por columna libre).
+- **`A⁻¹ right`** — una inversa por la derecha `X` con `A · X = Iₘ`. Existe si `m ≤ n` y
+  las filas de `A` son linealmente independientes. Se calcula columna a columna
+  resolviendo `A · xⱼ = eⱼ`.
+- **`A⁻¹ left`** — una inversa por la izquierda `Y` con `Y · A = Iₙ`. Se obtiene como
+  `(Aᵀ inversa por la derecha)ᵀ`.
+
+## Encadenar con slots — el flujo Hill
+
+El banco de slots es el motivo principal de esta práctica. Una sesión típica:
+
+1. Introduce la clave `K` en la matriz A.
+2. Elige `det A`, pulsa **Compute** y **Save → S0**. El slot `S0` guarda `det K` mod `N`.
+3. Construye una matriz 1×1 que contenga `S0`, elige **A⁻¹** (con `N` pequeño), o bien
+   elige directamente **A⁻¹** sobre `K` — la traza te muestra el determinante, su
+   inverso y la adjunta en un solo paso.
+4. Toda matriz intermedia puede guardarse en `S1`, `S2`, … y referenciarse más tarde
+   como `S1` (completa) o `S1[i, j]` (una celda).
+
+La ganancia: no vuelves a teclear ningún número. Cada derivación de varios pasos se
+reduce a una secuencia corta de operaciones cuyos operandos son literales o
+intermedios con nombre.
+
+## La traza
+
+Cada operación devuelve una traza estructurada: operaciones de fila (intercambio /
+escala / eliminación), colocación de pivote, expansiones por cofactor y notas en
+texto libre. La UI las muestra en orden bajo el resultado para que sigas la
+derivación — el mismo espíritu que el writeup del cifrado afín, extendido a matrices.
+
+## Código Rust
+
+La lógica vive en `crates/matrix/` y expone una única función `op(request_json)` vía
+`wasm-bindgen`. La petición es una unión etiquetada sobre las operaciones:
+
+```rust
+#[derive(Deserialize)]
+pub struct OpRequest {
+    pub kind: String,   // "add", "mul", "inv", "rref", "solve", ...
+    pub n: i64,
+    pub a: Option<Matrix>,
+    pub b: Option<Matrix>,
+    pub k: Option<i64>,
+    pub p: Option<u64>,
+    pub row_sel: Option<Vec<usize>>,
+    pub col_sel: Option<Vec<usize>>,
+}
+```
+
+RREF es el workhorse: pivotea primero por unidades, cae a cualquier entrada no nula con
+advertencia y emite cada operación de fila en la traza.
+
+```rust
+fn op_rref(a: &Matrix, n: i64, trace: &mut Vec<Step>, warnings: &mut Vec<String>)
+    -> (Matrix, Vec<usize>);
+```
+
+La inversión va por el camino de la adjunta para que la traza muestre la expansión
+por cofactores directamente:
+
+```rust
+A⁻¹ = (det A)⁻¹ · adj(A)   (mod N)
+```
+
+Resolver `Ax = b`, las inversas unilaterales y el rango todos llaman a RREF por
+dentro.
+
+## Límites de implementación
+
+- Dimensiones acotadas a 6×6 en la UI para que la traza siga siendo legible.
+- Potencias acotadas a 10 000 — la exponenciación rápida es `O(log p)`
+  multiplicaciones, pero la traza se vuelve ilegible más allá.
+- Los módulos compuestos emiten advertencia pero no se rechazan. Es intencional: ver
+  exactamente dónde un `N` compuesto rompe la unicidad es parte de la lección.
