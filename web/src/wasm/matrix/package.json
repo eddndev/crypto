@@ -1,0 +1,15 @@
+{
+  "name": "matrix",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "matrix_bg.wasm",
+    "matrix.js",
+    "matrix.d.ts"
+  ],
+  "main": "matrix.js",
+  "types": "matrix.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
