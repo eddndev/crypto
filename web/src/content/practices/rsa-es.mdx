@@ -1,0 +1,73 @@
+---
+title: "Cifrado Híbrido RSA"
+description: "Genera llaves RSA y cifra/descifra archivos con un esquema híbrido AES-GCM + RSA"
+tags: ["rsa", "aes-gcm", "híbrido", "llave pública"]
+order: 4
+draft: false
+lang: es
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## ¿Por qué cifrado híbrido?
+
+RSA solo puede cifrar mensajes estrictamente menores que su módulo menos el padding. Con
+una llave de 2048 bits y padding PKCS#1 v1.5 quedan a lo sumo 245 bytes de payload — muy
+poco para un archivo real. La solución estándar (la usan TLS, PGP, age) es el **cifrado
+híbrido**:
+
+1. Genera una llave simétrica `K` aleatoria.
+2. Cifra el archivo con `K` usando un cifrador simétrico rápido (aquí, **AES-256-GCM**).
+3. Cifra `K` (solo 32 bytes) con la **llave pública RSA** del destinatario.
+4. Envía el criptograma simétrico junto con la llave cifrada por RSA.
+
+El destinatario invierte el paso 3 con su llave privada para recuperar `K`, y luego el
+paso 2 para recuperar el texto en claro.
+
+## Las tres operaciones
+
+### 1. Generación de llaves
+
+`generate_keys` produce una llave privada RSA de 2048 bits (`p`, `q`, `d`, …) y deriva la
+pública `(n, e)`. Ambas se serializan en JSON. El titular conserva el archivo privado y
+distribuye solo el público. La aleatoriedad proviene de `window.crypto.getRandomValues`
+vía el crate `getrandom` de Rust — el mismo CSPRNG que usa tu navegador para TLS.
+
+### 2. Cifrar un archivo
+
+```
+nonce       ← 12 bytes aleatorios
+aes_key     ← 32 bytes aleatorios
+ciphertext  ← AES-256-GCM(aes_key, nonce, archivo)
+salida      ← nonce || ciphertext
+enc_key     ← RSA-PKCS#1-v1.5-Encrypt(pub_destinatario, aes_key)
+```
+
+El nonce de 12 bytes se antepone al ciphertext de AES-GCM para que el receptor pueda
+separarlo. La llave AES cifrada se guarda en un archivo `_key.enc` aparte. GCM ofrece
+cifrado **autenticado**: cualquier bit alterado en el ciphertext hace que el descifrado
+falle ruidosamente.
+
+### 3. Descifrar un archivo
+
+```
+aes_key     ← RSA-PKCS#1-v1.5-Decrypt(priv_destinatario, enc_key)
+nonce, ct   ← separar los primeros 12 bytes
+plaintext   ← AES-256-GCM-Decrypt(aes_key, nonce, ct)
+```
+
+Si se usa la llave privada equivocada, RSA falla. Si el ciphertext fue alterado, el tag
+de autenticación de GCM lo rechaza. En ambos casos se lanza un error antes de escribir
+cualquier byte de texto en claro.
+
+## Notas de seguridad
+
+- Se usa **PKCS#1 v1.5** por paridad con la versión CLI de la práctica. Para diseños
+  nuevos se prefiere OAEP — tiene una prueba de seguridad más fuerte contra ataques de
+  texto cifrado escogido.
+- La llave AES se genera **por mensaje**. Reutilizar un nonce con la misma llave en GCM
+  es catastrófico; usar una llave nueva de 32 bytes por archivo lo evita.
+- Todo ocurre en tu navegador. Inspecciona la pestaña de red — no hay peticiones salientes
+  durante generar/cifrar/descifrar.

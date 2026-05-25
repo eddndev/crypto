@@ -1,0 +1,22 @@
+[package]
+name = "rsa-practice"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rsa_practice"
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[dependencies]
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rsa = { version = "0.9.10", features = ["serde"] }
+aes-gcm = "0.10.3"
+rand = "0.8"
+getrandom = { version = "0.2", features = ["js"] }
+js-sys = "0.3"
+serde-wasm-bindgen = "0.6"

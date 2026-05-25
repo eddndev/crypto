@@ -1,0 +1,72 @@
+---
+title: "RSA Hybrid Encryption"
+description: "Generate RSA keys and encrypt/decrypt files with a hybrid AES-GCM + RSA scheme"
+tags: ["rsa", "aes-gcm", "hybrid", "public-key"]
+order: 4
+draft: false
+lang: en
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## Why hybrid encryption?
+
+RSA can only encrypt messages strictly smaller than its modulus minus the padding overhead.
+For a 2048-bit key with PKCS#1 v1.5 padding that leaves at most 245 bytes of payload — far
+too little for a real file. The practical fix used everywhere (TLS, PGP, age) is **hybrid
+encryption**:
+
+1. Generate a fresh random symmetric key `K`.
+2. Encrypt the file with `K` using a fast symmetric cipher (here, **AES-256-GCM**).
+3. Encrypt `K` (which is only 32 bytes) with the recipient's **RSA public key**.
+4. Ship the symmetric ciphertext alongside the RSA-encrypted key.
+
+The recipient reverses step 3 with their private key to recover `K`, then step 2 to recover
+the plaintext.
+
+## The three operations
+
+### 1. Key generation
+
+`generate_keys` produces a 2048-bit RSA private key (`p`, `q`, `d`, …) and derives the
+matching public key `(n, e)`. Both are serialized as JSON. The owner keeps the private
+file and shares only the public one. Randomness comes from `window.crypto.getRandomValues`
+via Rust's `getrandom` crate — the same CSPRNG your browser uses for TLS.
+
+### 2. Encrypt a file
+
+```
+nonce       ← 12 random bytes
+aes_key     ← 32 random bytes
+ciphertext  ← AES-256-GCM(aes_key, nonce, file)
+output      ← nonce || ciphertext
+enc_key     ← RSA-PKCS#1-v1.5-Encrypt(recipient_pub, aes_key)
+```
+
+The 12-byte nonce is prepended to the AES-GCM ciphertext so the recipient can split it
+back out. The encrypted AES key is written to a separate `_key.enc` file. GCM provides
+**authenticated** encryption: any bit-flip in the ciphertext makes decryption fail loudly.
+
+### 3. Decrypt a file
+
+```
+aes_key     ← RSA-PKCS#1-v1.5-Decrypt(recipient_priv, enc_key)
+nonce, ct   ← split first 12 bytes of input
+plaintext   ← AES-256-GCM-Decrypt(aes_key, nonce, ct)
+```
+
+If the wrong private key is used, RSA decryption fails. If the ciphertext was tampered
+with, GCM's authentication tag rejects it. Either case raises an error before any plaintext
+is written.
+
+## Security notes
+
+- **PKCS#1 v1.5** is used here for parity with the CLI version of the practice. For new
+  designs OAEP is preferred — it has a tighter security proof against chosen-ciphertext
+  attacks.
+- The AES key is generated *per-message*. Reusing a nonce with the same key in GCM is
+  catastrophic; a fresh 32-byte key per file makes that impossible.
+- Everything happens in your browser. Inspect the network tab — there are no outbound
+  requests during generate/encrypt/decrypt.

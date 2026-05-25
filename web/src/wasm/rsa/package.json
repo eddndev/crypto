@@ -1,0 +1,15 @@
+{
+  "name": "rsa-practice",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "rsa_bg.wasm",
+    "rsa.js",
+    "rsa.d.ts"
+  ],
+  "main": "rsa.js",
+  "types": "rsa.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
