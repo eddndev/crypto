@@ -1,0 +1,129 @@
+---
+title: "AES Modes of Operation"
+description: "Encrypt and decrypt files with AES-128 in ECB, CBC, CFB, OFB and CTR — with per-block tracing"
+tags: ["aes", "block-cipher", "ecb", "cbc", "cfb", "ofb", "ctr"]
+order: 5
+draft: false
+lang: en
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## A block cipher is not a cipher
+
+AES on its own only knows how to transform a single 16-byte block under a 16-byte key. To
+encrypt anything longer than that — a sentence, an image, a multi-gigabyte archive — you
+need a **mode of operation**: a recipe that says how to feed many blocks through the same
+keyed permutation and how to glue inputs and outputs together.
+
+This practice implements five classical NIST modes on top of raw AES-128:
+
+| Mode | Needs IV? | Padding | Parallelizable enc / dec |
+| ---- | --------- | ------- | ------------------------ |
+| ECB  | no  | PKCS#7 | yes / yes |
+| CBC  | yes | PKCS#7 | no / yes |
+| CFB  | yes | none   | no / yes |
+| OFB  | yes | none   | no / no |
+| CTR  | yes (counter) | none | yes / yes |
+
+## The modes
+
+### ECB — Electronic Code Book
+
+```
+C_i = AES_K(P_i)
+P_i = AES_K^{-1}(C_i)
+```
+
+Each block is encrypted in isolation. Equal plaintext blocks produce equal ciphertext
+blocks — load the workspace with a flat bitmap and you'll see the original image leak
+through.
+
+### CBC — Cipher Block Chaining
+
+```
+C_0 = AES_K(P_0 ⊕ IV)
+C_i = AES_K(P_i ⊕ C_{i-1})
+P_i = AES_K^{-1}(C_i) ⊕ C_{i-1}
+```
+
+The plaintext is XORed with the previous ciphertext block before encryption, so identical
+plaintext blocks no longer give identical ciphertext. Decryption is parallelizable
+(each `P_i` only needs `C_i` and `C_{i-1}`); encryption is strictly sequential.
+
+### CFB — Cipher Feedback
+
+```
+C_i = P_i ⊕ AES_K(C_{i-1})       with C_{-1} = IV
+P_i = C_i ⊕ AES_K(C_{i-1})
+```
+
+AES is only ever used in the **encrypt** direction, even when decrypting — handy when the
+block cipher is hardware-accelerated only one way. CFB turns AES into a self-synchronizing
+stream cipher; no padding is needed because the keystream is XORed byte-by-byte against the
+final partial block.
+
+### OFB — Output Feedback
+
+```
+O_0 = AES_K(IV)
+O_i = AES_K(O_{i-1})
+C_i = P_i ⊕ O_i
+```
+
+The keystream `O_i` does not depend on the message at all — same `(K, IV)` gives the same
+keystream every time, which makes OFB symmetric (encrypt = decrypt) but also fragile:
+reusing an IV with the same key reveals the XOR of two plaintexts.
+
+### CTR — Counter
+
+```
+KS_i = AES_K(IV + i)
+C_i  = P_i ⊕ KS_i
+```
+
+The IV is treated as a 128-bit big-endian counter and incremented per block. CTR is fully
+parallelizable in both directions and is the basis for modern AEAD modes like GCM.
+This implementation follows the **NIST SP 800-38A** test vectors — paste them into the
+workspace and you'll get the published ciphertext byte-for-byte.
+
+## Key handling
+
+The workspace accepts the AES-128 key as either:
+
+- **Raw hex** — exactly 32 hex characters. The "Random" button calls the browser CSPRNG
+  via `window.crypto.getRandomValues`.
+- **Passphrase** — derived with **PBKDF2-HMAC-SHA256**, optional hex salt, configurable
+  iteration count, 16-byte output. The derived hex is shown so you can verify what got
+  fed into AES.
+
+The IV/nonce is always supplied as raw hex (32 chars) and randomized the same way.
+
+## Padding
+
+ECB and CBC require a length that's a multiple of 16. We use **PKCS#7**: append `N`
+copies of the byte `N` where `N = 16 − (len mod 16)`. Even when the plaintext is already
+aligned, a full extra block of `0x10` bytes is added so the unpadding step is unambiguous.
+CFB, OFB and CTR work on arbitrary byte lengths — the final partial block is XORed against
+the truncated keystream, no padding required.
+
+## File naming
+
+The workspace tags the output filename so a single artifact carries its own history:
+
+- Encrypt → `imagen_eCBC.png`
+- Decrypt → `imagen_eCBC_dCBC.png`
+
+Round-trip the same file twice and you'll see both tags appear in order.
+
+## Security notes
+
+- **Never use ECB for real data.** The lookup-table semantics expose structure.
+- **Never reuse an `(IV, key)` pair** for CTR, OFB or CFB — two messages encrypted with
+  the same keystream leak `P_1 ⊕ P_2`.
+- None of these modes provide integrity. Authentication requires an extra MAC or an AEAD
+  construction (GCM, CCM, ChaCha20-Poly1305).
+- Everything runs in your browser. Open the network tab during a run — there's nothing
+  going out.

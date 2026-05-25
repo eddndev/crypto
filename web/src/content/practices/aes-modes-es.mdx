@@ -1,0 +1,129 @@
+---
+title: "Modos de Operación de AES"
+description: "Cifra y descifra archivos con AES-128 en ECB, CBC, CFB, OFB y CTR — con traza por bloque"
+tags: ["aes", "bloques", "ecb", "cbc", "cfb", "ofb", "ctr"]
+order: 5
+draft: false
+lang: es
+authors:
+  - "Alonso Sánchez Eduardo"
+  - "Ramírez Lozano Gael Martin"
+  - "Zaragoza Guerrero Gustavo"
+---
+
+## Un cifrador por bloques no es un cifrador
+
+AES por sí solo únicamente sabe transformar un bloque de 16 bytes bajo una llave de 16
+bytes. Para cifrar cualquier cosa más larga — una frase, una imagen, un archivo de
+gigabytes — hace falta un **modo de operación**: una receta que dice cómo alimentar
+varios bloques a la misma permutación y cómo pegar entradas y salidas entre sí.
+
+Esta práctica implementa cinco modos clásicos del NIST sobre AES-128 puro:
+
+| Modo | ¿Usa IV? | Padding | Paralelizable cif / desc |
+| ---- | -------- | ------- | ------------------------ |
+| ECB  | no  | PKCS#7 | sí / sí |
+| CBC  | sí  | PKCS#7 | no / sí |
+| CFB  | sí  | ninguno | no / sí |
+| OFB  | sí  | ninguno | no / no |
+| CTR  | sí (contador) | ninguno | sí / sí |
+
+## Los modos
+
+### ECB — Electronic Code Book
+
+```
+C_i = AES_K(P_i)
+P_i = AES_K^{-1}(C_i)
+```
+
+Cada bloque se cifra de forma independiente. Bloques de texto plano iguales producen
+bloques cifrados iguales — carga el workspace con un bitmap plano y verás cómo la imagen
+original se filtra a simple vista.
+
+### CBC — Cipher Block Chaining
+
+```
+C_0 = AES_K(P_0 ⊕ IV)
+C_i = AES_K(P_i ⊕ C_{i-1})
+P_i = AES_K^{-1}(C_i) ⊕ C_{i-1}
+```
+
+El texto plano se XOR-ea con el bloque cifrado anterior antes de cifrarse, así dos
+bloques planos iguales ya no dan el mismo cifrado. El descifrado es paralelizable (cada
+`P_i` solo necesita `C_i` y `C_{i-1}`); el cifrado es estrictamente secuencial.
+
+### CFB — Cipher Feedback
+
+```
+C_i = P_i ⊕ AES_K(C_{i-1})       con C_{-1} = IV
+P_i = C_i ⊕ AES_K(C_{i-1})
+```
+
+AES se usa siempre en dirección **de cifrado**, incluso al descifrar — útil cuando el
+hardware solo acelera una dirección. CFB convierte a AES en un cifrador de flujo
+auto-sincronizable; no requiere padding porque el último bloque parcial se XOR-ea byte a
+byte contra el keystream.
+
+### OFB — Output Feedback
+
+```
+O_0 = AES_K(IV)
+O_i = AES_K(O_{i-1})
+C_i = P_i ⊕ O_i
+```
+
+El keystream `O_i` no depende del mensaje — el mismo par `(K, IV)` produce siempre el
+mismo keystream. Esto hace a OFB simétrico (cifrar = descifrar) pero también frágil:
+reutilizar un IV con la misma llave revela el XOR de los dos textos planos.
+
+### CTR — Counter
+
+```
+KS_i = AES_K(IV + i)
+C_i  = P_i ⊕ KS_i
+```
+
+El IV se interpreta como un contador big-endian de 128 bits y se incrementa por bloque.
+CTR es completamente paralelizable en ambas direcciones y es la base de los modos AEAD
+modernos como GCM. Esta implementación sigue los vectores de prueba **NIST SP 800-38A** —
+pégalos en el workspace y obtendrás el cifrado publicado byte por byte.
+
+## Manejo de llaves
+
+El workspace acepta la llave AES-128 de dos formas:
+
+- **Hex crudo** — exactamente 32 caracteres hex. El botón "Aleatorio" usa el CSPRNG del
+  navegador (`window.crypto.getRandomValues`).
+- **Frase** — derivada con **PBKDF2-HMAC-SHA256**, sal hex opcional, iteraciones
+  configurables, salida de 16 bytes. La llave derivada se muestra en hex para que puedas
+  verificar exactamente qué entra a AES.
+
+El IV/nonce siempre se proporciona como hex crudo (32 chars) y se aleatoriza igual.
+
+## Padding
+
+ECB y CBC requieren una longitud múltiplo de 16. Usamos **PKCS#7**: se añaden `N` copias
+del byte `N` donde `N = 16 − (len mod 16)`. Aun cuando el texto plano ya esté alineado,
+se agrega un bloque completo de bytes `0x10` para que el des-padding sea inambiguo.
+CFB, OFB y CTR aceptan cualquier longitud — el último bloque parcial se XOR-ea contra
+el keystream truncado, sin padding.
+
+## Nombres de archivo
+
+El workspace etiqueta el nombre de salida para que un archivo lleve su propia historia:
+
+- Cifrar → `imagen_eCBC.png`
+- Descifrar → `imagen_eCBC_dCBC.png`
+
+Si haces ida y vuelta del mismo archivo verás ambas etiquetas en orden.
+
+## Notas de seguridad
+
+- **Nunca uses ECB para datos reales.** La semántica de tabla de búsqueda expone la
+  estructura del mensaje.
+- **Nunca reutilices un par `(IV, llave)`** en CTR, OFB o CFB — dos mensajes cifrados
+  con el mismo keystream filtran `P_1 ⊕ P_2`.
+- Ninguno de estos modos provee integridad. Para autenticación hace falta un MAC adicional
+  o un esquema AEAD (GCM, CCM, ChaCha20-Poly1305).
+- Todo corre en tu navegador. Abre la pestaña de red durante una corrida — no sale nada.
