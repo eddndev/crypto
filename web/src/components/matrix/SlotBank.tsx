@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { SlotBank, SlotValue } from './types';
 import { getDraftDrag, isDraftDrag, isResultDrag, setSlotDrag, type DraftSource } from './drag';
+import { useT } from './i18n';
 
 type Props = {
   slots: SlotBank;
@@ -23,14 +24,15 @@ export default function SlotBankView({
   onSaveResult,
   onSaveDraft,
 }: Props) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
         <span className="font-mono text-[0.75rem] text-[#a0a0aa] uppercase tracking-[0.08em]">
-          Slots
+          {t.slots}
         </span>
         <span className="font-mono text-[0.7rem] text-text-secondary/70">
-          drag a tile into a matrix cell · drop a matrix or the result here to save
+          {t.slotsHint}
         </span>
       </div>
       <div className="grid grid-cols-5 max-md:grid-cols-2 gap-2">
@@ -69,6 +71,7 @@ function SlotTile({
   onSaveDraft: (source: DraftSource) => void;
 }) {
   const [accepting, setAccepting] = useState(false);
+  const t = useT();
   const isEmpty = value.kind === 'empty';
   const isSquare = value.kind === 'matrix' && value.rows === value.cols;
   const draggable = !isEmpty;
@@ -109,8 +112,8 @@ function SlotTile({
 
   const hint = isEmpty
     ? hasResult
-      ? 'drop result / A / B here'
-      : 'drop A or B here'
+      ? t.dropFull
+      : t.dropAB
     : null;
 
   function handleTileClick() {
@@ -130,7 +133,7 @@ function SlotTile({
       draggable={draggable}
       role={!isEmpty ? 'button' : undefined}
       tabIndex={!isEmpty ? 0 : undefined}
-      aria-label={!isEmpty ? `inspect slot S${index}` : undefined}
+      aria-label={!isEmpty ? t.inspectSlotAria(index) : undefined}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragLeave={() => setAccepting(false)}
@@ -154,7 +157,7 @@ function SlotTile({
             }}
             onMouseDown={(e) => e.stopPropagation()}
             className="opacity-0 group-hover:opacity-100 font-mono text-[0.65rem] text-text-secondary hover:text-red-400 transition-opacity"
-            aria-label={`clear S${index}`}
+            aria-label={t.clearSlotAria(index)}
           >
             ×
           </button>
@@ -163,7 +166,7 @@ function SlotTile({
       {hint && <span className="font-mono text-[0.7rem] text-text-secondary/40">{hint}</span>}
       {value.kind === 'scalar' && (
         <div className="flex items-baseline gap-2">
-          <span className="font-mono text-[0.7rem] text-text-secondary">scalar</span>
+          <span className="font-mono text-[0.7rem] text-text-secondary">{t.scalarLabel}</span>
           <span className="font-mono text-[0.95rem] text-text-primary tabular-nums">
             {value.value}
           </span>
@@ -177,7 +180,7 @@ function SlotTile({
           {isSquare && (
             <span
               className="font-mono text-[0.65rem] text-accent-deep border border-accent-deep/60 px-1"
-              title="square"
+              title={t.squareBadge}
             >
               □
             </span>

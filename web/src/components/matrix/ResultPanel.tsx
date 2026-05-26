@@ -4,6 +4,7 @@ import type { Atom, OpResponse, SlotValue } from './types';
 import { atomToSlotValue, SLOT_COUNT } from './resolve';
 import { setResultDrag } from './drag';
 import MatrixGrid from './MatrixGrid';
+import { useT } from './i18n';
 
 type Props = {
   response: OpResponse | null;
@@ -12,11 +13,12 @@ type Props = {
 
 export default function ResultPanel({ response, onSave }: Props) {
   const [slotIdx, setSlotIdx] = useState<number>(0);
+  const t = useT();
   if (!response) {
     return (
       <div className="p-6 border border-dashed border-[#3a3a42] bg-[#0c0c12]/40">
         <span className="font-mono text-[0.8rem] text-text-secondary/60">
-          Run an operation to see the result here.
+          {t.resultPlaceholder}
         </span>
       </div>
     );
@@ -30,7 +32,7 @@ export default function ResultPanel({ response, onSave }: Props) {
       {warnings.length > 0 && (
         <div className="p-3 border border-yellow-500/40 bg-yellow-500/5">
           <span className="block font-mono text-[0.7rem] text-yellow-400 uppercase tracking-wider mb-1">
-            Warnings
+            {t.warnings}
           </span>
           <ul className="list-disc list-inside font-mono text-[0.78rem] text-yellow-200/80 space-y-0.5">
             {warnings.map((w, i) => (
@@ -43,14 +45,14 @@ export default function ResultPanel({ response, onSave }: Props) {
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-baseline gap-3">
             <span className="font-mono text-[0.7rem] text-accent uppercase tracking-[0.12em]">
-              Result
+              {t.result}
             </span>
-            <span className="font-mono text-[0.7rem] text-text-secondary/70">mod {n}</span>
+            <span className="font-mono text-[0.7rem] text-text-secondary/70">{t.modShort(n)}</span>
           </div>
           {savable && (
             <div className="flex items-center gap-2">
               <span className="font-mono text-[0.65rem] text-text-secondary/70 uppercase tracking-wider hidden md:inline">
-                or drop on a slot ↓
+                {t.dropOnSlotHint}
               </span>
               <select
                 value={slotIdx}
@@ -68,7 +70,7 @@ export default function ResultPanel({ response, onSave }: Props) {
                 onClick={() => onSave(slotIdx, savable)}
                 className="font-mono text-[0.7rem] uppercase tracking-[0.1em] px-3 py-1.5 bg-accent-deep text-white hover:bg-accent transition-colors"
               >
-                Save → S{slotIdx}
+                {t.saveToSlot(slotIdx)}
               </button>
             </div>
           )}
@@ -81,6 +83,7 @@ export default function ResultPanel({ response, onSave }: Props) {
 
 function DraggableResult({ atom, savable }: { atom: Atom; savable: boolean }) {
   const [dragging, setDragging] = useState(false);
+  const t = useT();
 
   function handleDragStart(ev: ReactDragEvent) {
     if (!savable) {
@@ -104,7 +107,7 @@ function DraggableResult({ atom, savable }: { atom: Atom; savable: boolean }) {
         <span
           aria-hidden="true"
           className="absolute -top-1 -left-1 font-mono text-[0.65rem] text-accent/60"
-          title="drag to a slot"
+          title={t.dragToSlotTooltip}
         >
           ⋮⋮
         </span>
@@ -129,18 +132,7 @@ function ResultBody({ atom }: { atom: Atom }) {
     return <MatrixGrid rows={atom.rows} cols={atom.cols} data={atom.data} size="lg" />;
   }
   if (atom.type === 'rref') {
-    return (
-      <div className="flex flex-col gap-2">
-        <MatrixGrid
-          rows={atom.rows}
-          cols={atom.cols}
-          data={atom.data}
-          highlightCols={atom.pivot_cols}
-          size="lg"
-          caption={`rank = ${atom.rank} · pivots at columns ${atom.pivot_cols.map((c) => c + 1).join(', ') || '—'}`}
-        />
-      </div>
-    );
+    return <RrefResult atom={atom} />;
   }
   if (atom.type === 'system') {
     return <SystemResult atom={atom} />;
@@ -153,6 +145,9 @@ function SystemResult({
 }: {
   atom: Extract<Atom, { type: 'system' }>;
 }) {
+  const t = useT();
+  const pivots = atom.pivot_cols.map((c) => c + 1).join(', ') || '—';
+  const free = atom.free_cols.map((c) => c + 1).join(', ') || '—';
   return (
     <div className="flex flex-col gap-3 font-mono text-[0.88rem]">
       <div className="flex items-center gap-2">
@@ -160,13 +155,13 @@ function SystemResult({
           className={`w-2 h-2 rounded-full ${atom.consistent ? 'bg-green-500' : 'bg-red-500'}`}
         />
         <span className={atom.consistent ? 'text-green-400' : 'text-red-400'}>
-          {atom.consistent ? 'CONSISTENT' : 'INCONSISTENT'}
+          {atom.consistent ? t.consistent : t.inconsistent}
         </span>
       </div>
       {atom.consistent && atom.particular && (
         <div>
           <span className="block text-[0.7rem] text-text-secondary uppercase tracking-wider mb-1">
-            Particular solution
+            {t.particularSolution}
           </span>
           <VectorLine values={atom.particular} />
         </div>
@@ -174,8 +169,7 @@ function SystemResult({
       {atom.homogeneous_basis.length > 0 && (
         <div>
           <span className="block text-[0.7rem] text-text-secondary uppercase tracking-wider mb-1">
-            Homogeneous basis ({atom.homogeneous_basis.length} free var
-            {atom.homogeneous_basis.length === 1 ? '' : 's'})
+            {t.homogeneousBasis(atom.homogeneous_basis.length)}
           </span>
           <div className="flex flex-col gap-1">
             {atom.homogeneous_basis.map((v, i) => (
@@ -184,10 +178,24 @@ function SystemResult({
           </div>
         </div>
       )}
-      <div className="text-[0.72rem] text-text-secondary/70">
-        pivots: {atom.pivot_cols.map((c) => c + 1).join(', ') || '—'} · free:{' '}
-        {atom.free_cols.map((c) => c + 1).join(', ') || '—'}
-      </div>
+      <div className="text-[0.72rem] text-text-secondary/70">{t.pivotsFree(pivots, free)}</div>
+    </div>
+  );
+}
+
+function RrefResult({ atom }: { atom: Extract<Atom, { type: 'rref' }> }) {
+  const t = useT();
+  const cols = atom.pivot_cols.map((c) => c + 1).join(', ') || '—';
+  return (
+    <div className="flex flex-col gap-2">
+      <MatrixGrid
+        rows={atom.rows}
+        cols={atom.cols}
+        data={atom.data}
+        highlightCols={atom.pivot_cols}
+        size="lg"
+        caption={t.rrefCaption(atom.rank, cols)}
+      />
     </div>
   );
 }

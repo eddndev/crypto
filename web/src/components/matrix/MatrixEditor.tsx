@@ -11,6 +11,7 @@ import {
   setDraftDrag,
   type DraftSource,
 } from './drag';
+import { useT } from './i18n';
 
 type Props = {
   /** Identifier used by drag targets to distinguish A from B. */
@@ -51,6 +52,7 @@ export default function MatrixEditor({
   lockCols,
 }: Props) {
   const [dropTarget, setDropTarget] = useState<DropHighlight>(null);
+  const t = useT();
   const effectiveMinCols = lockCols ?? minCols;
   const effectiveMaxCols = lockCols ?? maxCols;
 
@@ -111,27 +113,31 @@ export default function MatrixEditor({
           draggable
           onDragStart={handleHandleDragStart}
           className="inline-flex items-center gap-2 font-mono text-[0.75rem] text-[#a0a0aa] uppercase tracking-[0.08em] cursor-grab active:cursor-grabbing select-none hover:text-accent transition-colors"
-          title={`drag ${label} onto a slot or onto the other matrix`}
+          title={t.matrixEditorDragTitle(label)}
         >
           <span aria-hidden="true" className="text-accent/70">⋮⋮</span>
           {label}
         </span>
         <div className="flex items-center gap-3 font-mono text-[0.75rem] text-text-secondary">
           <DimControl
-            label="rows"
+            label={t.rows}
             value={value.rows}
             min={minRows}
             max={maxRows}
             onChange={(r) => setDims(r, value.cols)}
+            decreaseAria={t.decreaseAria(t.rows)}
+            increaseAria={t.increaseAria(t.rows)}
           />
           <span className="text-[#3a3a42]">×</span>
           <DimControl
-            label="cols"
+            label={t.cols}
             value={value.cols}
             min={effectiveMinCols}
             max={effectiveMaxCols}
             onChange={(c) => setDims(value.rows, c)}
             disabled={lockCols !== undefined}
+            decreaseAria={t.decreaseAria(t.cols)}
+            increaseAria={t.increaseAria(t.cols)}
           />
         </div>
       </div>
@@ -172,8 +178,8 @@ export default function MatrixEditor({
         )}
       </div>
       <p className="font-mono text-[0.7rem] text-text-secondary/70 leading-relaxed">
-        Integers, <span className="text-accent">S0…S4</span>, <span className="text-accent">S0[i,j]</span>,
-        or drop a slot / matrix / result here.
+        {t.cellHint1} <span className="text-accent">S0…S4</span>, <span className="text-accent">S0[i,j]</span>,{' '}
+        {t.cellHint2}
       </p>
     </div>
   );
@@ -186,6 +192,8 @@ function DimControl({
   max,
   onChange,
   disabled = false,
+  decreaseAria,
+  increaseAria,
 }: {
   label: string;
   value: number;
@@ -193,6 +201,8 @@ function DimControl({
   max: number;
   onChange: (n: number) => void;
   disabled?: boolean;
+  decreaseAria: string;
+  increaseAria: string;
 }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -202,7 +212,7 @@ function DimControl({
         onClick={() => onChange(value - 1)}
         disabled={disabled || value <= min}
         className="w-6 h-6 border border-[#3a3a42] hover:border-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        aria-label={`decrease ${label}`}
+        aria-label={decreaseAria}
       >
         −
       </button>
@@ -212,7 +222,7 @@ function DimControl({
         onClick={() => onChange(value + 1)}
         disabled={disabled || value >= max}
         className="w-6 h-6 border border-[#3a3a42] hover:border-accent disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-        aria-label={`increase ${label}`}
+        aria-label={increaseAria}
       >
         +
       </button>

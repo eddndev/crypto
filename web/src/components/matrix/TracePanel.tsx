@@ -1,13 +1,15 @@
 import type { Step } from './types';
+import { useT } from './i18n';
 
 type Props = { steps: Step[]; n: number };
 
 export default function TracePanel({ steps, n }: Props) {
+  const t = useT();
   if (steps.length === 0) return null;
   return (
     <div className="p-4 border border-[#3a3a42] bg-[#0c0c12]">
       <span className="block font-mono text-[0.7rem] text-[#a0a0aa] uppercase tracking-wider mb-2">
-        Trace ({steps.length} step{steps.length === 1 ? '' : 's'})
+        {t.trace(steps.length)}
       </span>
       <ol className="flex flex-col gap-1 font-mono text-[0.82rem]">
         {steps.map((s, i) => (
@@ -24,6 +26,7 @@ export default function TracePanel({ steps, n }: Props) {
 }
 
 function StepLine({ step, n }: { step: Step; n: number }) {
+  const t = useT();
   switch (step.kind) {
     case 'note':
       return <span className="text-text-secondary">{step.text}</span>;
@@ -59,17 +62,17 @@ function StepLine({ step, n }: { step: Step; n: number }) {
     case 'pivot':
       return (
         <span className="text-text-secondary">
-          pivot @ (R{step.row + 1}, C{step.col + 1}) = {step.value}
+          {t.pivotAt(step.row + 1, step.col + 1, step.value)}
         </span>
       );
     case 'cofactor':
       return (
         <span className="text-text-secondary">
-          cofactor C<sub>{step.i + 1},{step.j + 1}</sub> = ({step.sign > 0 ? '+' : '−'}) det(minor) = {step.det}
+          {t.cofactor(step.i + 1, step.j + 1, step.sign > 0 ? '+' : '−', step.det)}
         </span>
       );
     case 'snapshot':
-      return <span className="text-text-secondary/60">snapshot</span>;
+      return <span className="text-text-secondary/60">{t.snapshot}</span>;
     default:
       return null;
   }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from 'react';
+import { useCallback, useContext, useMemo, useReducer, useState } from 'react';
 import type { MatrixDraft, OpResponse, SlotBank, SlotValue } from './types';
 import {
   atomToSlotValue,
@@ -18,6 +18,7 @@ import ResultPanel from './ResultPanel';
 import SlotBankView from './SlotBank';
 import TracePanel from './TracePanel';
 import { useMatrixWasm } from './useMatrixWasm';
+import { LangContext, T, useT, type Lang } from './i18n';
 
 type State = {
   n: number;
@@ -108,24 +109,35 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function parseIdxList(input: string, max: number): number[] {
+function parseIdxList(input: string, max: number, lang: Lang): number[] {
+  const t = T[lang];
   return input
     .split(',')
-    .map((t) => t.trim())
-    .filter((t) => t !== '')
-    .map((t) => {
-      const n = parseInt(t, 10);
+    .map((s) => s.trim())
+    .filter((s) => s !== '')
+    .map((s) => {
+      const n = parseInt(s, 10);
       if (Number.isNaN(n) || n < 0 || n >= max) {
-        throw new Error(`index "${t}" out of range (valid: 0..${max - 1})`);
+        throw new Error(t.indexOutOfRange(s, max));
       }
       return n;
     });
 }
 
-export default function MatrixCalculator() {
+export default function MatrixCalculator({ lang = 'en' as Lang }: { lang?: Lang } = {}) {
+  return (
+    <LangContext.Provider value={lang}>
+      <MatrixCalculatorInner />
+    </LangContext.Provider>
+  );
+}
+
+function MatrixCalculatorInner() {
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [inspecting, setInspecting] = useState<number | null>(null);
   const wasm = useMatrixWasm();
+  const t = useT();
+  const lang = useContext(LangContext);
   const op = useMemo(() => getOp(state.operation), [state.operation]);
   const savableResult = useMemo(
     () => (state.response ? atomToSlotValue(state.response.result) : null),
@@ -163,13 +175,11 @@ export default function MatrixCalculator() {
       } catch (e) {
         dispatch({
           type: 'setError',
-          value: `Cannot copy ${from} into ${target}: ${
-            e instanceof Error ? e.message : String(e)
-          }`,
+          value: t.cannotCopy(from, target, e instanceof Error ? e.message : String(e)),
         });
       }
     },
-    [state.a, state.b, state.slots, dispatchDraftFor],
+    [state.a, state.b, state.slots, dispatchDraftFor, t],
   );
 
   const handleResultDrop = useCallback(
@@ -211,22 +221,20 @@ export default function MatrixCalculator() {
       } catch (e) {
         dispatch({
           type: 'setError',
-          value: `Cannot save matrix ${source} to S${index}: ${
-            e instanceof Error ? e.message : String(e)
-          }`,
+          value: t.cannotSave(source, index, e instanceof Error ? e.message : String(e)),
         });
       }
     },
-    [state.a, state.b, state.slots],
+    [state.a, state.b, state.slots, t],
   );
 
   function run() {
     if (wasm.status !== 'ready') {
-      dispatch({ type: 'setError', value: 'WASM not loaded yet' });
+      dispatch({ type: 'setError', value: t.wasmNotReady });
       return;
     }
     if (state.n < 2) {
-      dispatch({ type: 'setError', value: 'Modulus must be ≥ 2' });
+      dispatch({ type: 'setError', value: t.modulusMin });
       return;
     }
     try {
@@ -235,18 +243,18 @@ export default function MatrixCalculator() {
       if (op.needsB) {
         const b = resolveMatrix(state.b, state.slots);
         if (op.bIsVector && b.cols !== 1) {
-          throw new Error(`${op.label}: B must be a column vector (${b.rows}×1)`);
+          throw new Error(t.bMustBeVector(op.label, b.rows, 1));
         }
         req.b = b;
       }
       if (op.needsK) req.k = state.k;
       if (op.needsP) req.p = state.p;
       if (op.needsSel) {
-        req.row_sel = parseIdxList(state.rowSel, state.a.rows);
-        req.col_sel = parseIdxList(state.colSel, state.a.cols);
+        req.row_sel = parseIdxList(state.rowSel, state.a.rows, lang);
+        req.col_sel = parseIdxList(state.colSel, state.a.cols, lang);
       }
       if (op.requiresSquareA && state.a.rows !== state.a.cols) {
-        throw new Error(`${op.label} requires square A (got ${state.a.rows}×${state.a.cols})`);
+        throw new Error(t.requiresSquare(op.label, state.a.rows, state.a.cols));
       }
       const resp = wasm.call(req);
       dispatch({ type: 'setResponse', value: resp });
@@ -261,7 +269,7 @@ export default function MatrixCalculator() {
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <label className="flex flex-col gap-2">
           <span className="font-mono text-[0.75rem] text-[#a0a0aa] uppercase tracking-[0.08em]">
-            Modulus N
+            {t.modulus}
           </span>
           <input
             type="number"
@@ -276,7 +284,7 @@ export default function MatrixCalculator() {
           onClick={() => dispatch({ type: 'reset' })}
           className="font-mono text-[0.72rem] uppercase tracking-[0.1em] text-text-secondary hover:text-accent transition-colors"
         >
-          Reset workspace
+          {t.reset}
         </button>
       </div>
 
@@ -284,7 +292,7 @@ export default function MatrixCalculator() {
       <div className="grid grid-cols-[1fr_auto_1fr_auto] max-md:grid-cols-1 gap-6 items-start">
         <MatrixEditor
           id="A"
-          label="Matrix A"
+          label={t.matrixA}
           value={state.a}
           onChange={(draft) => dispatch({ type: 'setA', draft })}
           onSlotDrop={(idx, r, c) => handleSlotDrop('A', idx, r, c)}
@@ -300,9 +308,9 @@ export default function MatrixCalculator() {
             type="button"
             onClick={() => dispatch({ type: 'swapAB' })}
             disabled={!op.needsB}
-            title="Swap A ↔ B (operations are not commutative)"
+            title={t.swapTitle}
             className="font-mono text-[0.75rem] uppercase tracking-[0.1em] text-text-secondary hover:text-accent disabled:opacity-20 disabled:cursor-not-allowed border border-[#3a3a42] hover:border-accent px-3 py-2 transition-colors max-md:self-center"
-            aria-label="swap A and B"
+            aria-label={t.swapAria}
           >
             A ↔ B
           </button>
@@ -310,7 +318,7 @@ export default function MatrixCalculator() {
         {op.needsB ? (
           <MatrixEditor
             id="B"
-            label={op.bIsVector ? 'Vector b' : 'Matrix B'}
+            label={op.bIsVector ? t.vectorB : t.matrixB}
             value={state.b}
             onChange={(draft) => dispatch({ type: 'setB', draft })}
             onSlotDrop={(idx, r, c) => handleSlotDrop('B', idx, r, c)}
@@ -335,14 +343,14 @@ export default function MatrixCalculator() {
 
           {op.needsK && (
             <ExtraInput
-              label="scalar k"
+              label={t.scalarK}
               value={state.k}
               onChange={(v) => dispatch({ type: 'setK', value: v })}
             />
           )}
           {op.needsP && (
             <ExtraInput
-              label="power p"
+              label={t.powerP}
               value={state.p}
               min={0}
               onChange={(v) => dispatch({ type: 'setP', value: v })}
@@ -351,12 +359,12 @@ export default function MatrixCalculator() {
           {op.needsSel && (
             <>
               <TextInput
-                label="row indices (0-based, comma-separated)"
+                label={t.rowIdx}
                 value={state.rowSel}
                 onChange={(v) => dispatch({ type: 'setRowSel', value: v })}
               />
               <TextInput
-                label="col indices"
+                label={t.colIdx}
                 value={state.colSel}
                 onChange={(v) => dispatch({ type: 'setColSel', value: v })}
               />
@@ -369,7 +377,7 @@ export default function MatrixCalculator() {
             disabled={wasm.status !== 'ready'}
             className="mt-1 font-mono text-[0.8rem] font-semibold tracking-[0.1em] uppercase py-3 px-6 bg-accent-deep text-white border-none cursor-pointer transition-all duration-200 hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {wasm.status === 'loading' ? 'Loading…' : 'Compute'}
+            {wasm.status === 'loading' ? t.loading : t.compute}
           </button>
           {wasm.status === 'error' && (
             <span className="font-mono text-[0.72rem] text-red-400">{wasm.error}</span>
@@ -473,6 +481,7 @@ function SlotInspector({
   value: SlotValue;
   onClose: () => void;
 }) {
+  const t = useT();
   return (
     <div
       className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6"
@@ -495,17 +504,17 @@ function SlotInspector({
           </button>
         </div>
         {value.kind === 'empty' && (
-          <span className="font-mono text-[0.85rem] text-text-secondary">empty slot</span>
+          <span className="font-mono text-[0.85rem] text-text-secondary">{t.slotInspectorEmpty}</span>
         )}
         {value.kind === 'scalar' && (
           <div className="font-mono text-[1.1rem]">
-            scalar = <span className="text-accent">{value.value}</span>
+            {t.scalarLabel} = <span className="text-accent">{value.value}</span>
           </div>
         )}
         {value.kind === 'matrix' && (
           <div className="flex flex-col gap-2">
             <span className="font-mono text-[0.75rem] text-text-secondary">
-              matrix {value.rows}×{value.cols}
+              {t.matrixDimsLabel(value.rows, value.cols)}
             </span>
             <div className="overflow-auto">
               <table className="font-mono text-[0.85rem]">
