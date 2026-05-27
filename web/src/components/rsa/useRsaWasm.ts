@@ -77,11 +77,20 @@ export function useRsaWasm(): RsaApi {
     encryptFile(file, publicKeyJson) {
       if (!modRef.current) throw new Error('WASM not loaded yet');
       const out = modRef.current.encrypt_file(file, publicKeyJson);
-      return { ciphertext: out.ciphertext, encryptedKey: out.encrypted_key };
+      return { ciphertext: coerceBytes(out.ciphertext), encryptedKey: coerceBytes(out.encrypted_key) };
     },
     decryptFile(ciphertext, encryptedKey, privateKeyJson) {
       if (!modRef.current) throw new Error('WASM not loaded yet');
-      return modRef.current.decrypt_file(ciphertext, encryptedKey, privateKeyJson);
+      return coerceBytes(modRef.current.decrypt_file(ciphertext, encryptedKey, privateKeyJson));
     },
   };
+}
+
+// serde_wasm_bindgen serializes Vec<u8> as a JS Array<number>, NOT a Uint8Array.
+// Wrapping an Array in new Blob([…]) coerces via toString() → comma-joined ASCII —
+// then the saved .enc file is text, decrypt sees the wrong bytes and fails with
+// "RSA decryption failed (wrong private key?)". Force Uint8Array on every byte
+// vector crossing the WASM boundary so downloads and re-uploads round-trip.
+function coerceBytes(v: Uint8Array | ArrayLike<number>): Uint8Array {
+  return v instanceof Uint8Array ? v : new Uint8Array(v);
 }
