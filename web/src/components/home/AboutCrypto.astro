@@ -1,0 +1,45 @@
+---
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+
+const t = lang === 'es' ? {
+  label: 'Acerca de Criptografía',
+  title: 'EL NACIMIENTO DE LA LLAVE PÚBLICA',
+  paragraphs: [
+    'En 1976, Whitfield Diffie y Martin Hellman publicaron «New Directions in Cryptography» y rompieron con milenios de criptografía de clave secreta: por primera vez, dos personas podían acordar una clave compartida sobre un canal público, sin haberse visto nunca antes.',
+    'Un año después, en 1977, Ron Rivest, Adi Shamir y Leonard Adleman dieron en el MIT con la pieza que faltaba: RSA, el primer criptosistema práctico de llave pública. Su seguridad descansa en algo fácil de enunciar y difícil de revertir — multiplicar dos primos grandes es trivial, pero factorizar el producto es computacionalmente inviable. Cada quien publica un módulo n y un exponente e (la llave pública) y guarda en secreto la factorización (la llave privada).',
+    'Un detalle poco conocido: en 1973, Clifford Cocks, del GCHQ británico, ya había descrito un esquema equivalente, pero permaneció clasificado hasta 1997. Casi medio siglo después, RSA sigue cifrando correo, firmando certificados y protegiendo conexiones.',
+    'La práctica de RSA de este sitio implementa exactamente ese esquema —llaves de 2048 bits y cifrado híbrido AES-GCM + RSA— en WebAssembly. Mi propia llave pública, generada con ella, está disponible para descargar.',
+  ],
+  cta: 'Ver la práctica de RSA →',
+  ctaHref: '/es/practices/rsa',
+} : {
+  label: 'About Cryptography',
+  title: 'THE BIRTH OF THE PUBLIC KEY',
+  paragraphs: [
+    'In 1976, Whitfield Diffie and Martin Hellman published “New Directions in Cryptography” and broke with millennia of secret-key cryptography: for the first time, two people could agree on a shared key over a public channel, having never met before.',
+    'A year later, in 1977, Ron Rivest, Adi Shamir and Leonard Adleman found the missing piece at MIT: RSA, the first practical public-key cryptosystem. Its security rests on something easy to state and hard to reverse — multiplying two large primes is trivial, but factoring the product is computationally infeasible. Everyone publishes a modulus n and an exponent e (the public key) and keeps the factorization secret (the private key).',
+    'A little-known detail: back in 1973, Clifford Cocks of the British GCHQ had already described an equivalent scheme, but it stayed classified until 1997. Almost half a century later, RSA still encrypts email, signs certificates and protects connections.',
+    'The RSA practice on this site implements exactly that scheme — 2048-bit keys and hybrid AES-GCM + RSA encryption — in WebAssembly. My own public key, generated with it, is available to download.',
+  ],
+  cta: 'See the RSA practice →',
+  ctaHref: '/practices/rsa',
+};
+---
+
+<section id="about-crypto" class="relative py-24 pb-32 border-t border-border">
+  <div class="mx-auto w-full max-w-[1200px] px-8">
+    <div class="grid grid-cols-[0.8fr_1.2fr] max-md:grid-cols-1 gap-16 max-md:gap-8 items-start">
+      <div data-reveal>
+        <span class="section-label block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3">{t.label}</span>
+        <h2 class="section-title text-[clamp(2rem,4vw,3.25rem)] leading-[1.05] mb-0">{t.title}</h2>
+      </div>
+      <div class="flex flex-col gap-5 pt-2" data-reveal>
+        {t.paragraphs.map((p) => (
+          <p class="text-text-secondary text-[1.05rem] leading-[1.75]">{p}</p>
+        ))}
+        <a href={t.ctaHref} class="mt-2 inline-flex w-max font-mono text-[0.85rem] text-accent hover:text-accent-hover transition-colors duration-200">{t.cta}</a>
+      </div>
+    </div>
+  </div>
+</section>

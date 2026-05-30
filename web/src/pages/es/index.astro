@@ -1,15 +1,23 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
-import Hero from '../../components/Hero.astro';
+import Presentation from '../../components/home/Presentation.astro';
+import Education from '../../components/home/Education.astro';
+import Hobbies from '../../components/home/Hobbies.astro';
+import AboutCrypto from '../../components/home/AboutCrypto.astro';
 import Footer from '../../components/Footer.astro';
 ---
 
-<Base title="Intro a la Criptografía" description="Una introducción práctica a la criptografía con Rust y WebAssembly.">
+<Base title="Eduardo Alonso Sánchez — Software Developer" description="Sitio personal de Eduardo Alonso Sánchez — desarrollador enfocado en Rust, criptografía aplicada y WebAssembly.">
   <Header />
   <main class="relative overflow-hidden">
+    <!-- Background blobs -->
     <div id="blob-container" class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true"></div>
-    <Hero lang="es" />
+
+    <Presentation lang="es" />
+    <Education lang="es" />
+    <Hobbies lang="es" />
+    <AboutCrypto lang="es" />
   </main>
   <Footer lang="es" />
 </Base>

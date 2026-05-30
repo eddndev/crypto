@@ -1,0 +1,45 @@
+---
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+
+const t = lang === 'es' ? {
+  label: 'Tiempo libre',
+  title: 'HOBBIES',
+  placeholder: 'Foto / video',
+  caption: 'Describe este hobby',
+  todo: 'Placeholder: sustituye cada tarjeta por una foto o un video real (mínimo 3) con su descripción.',
+} : {
+  label: 'Off the clock',
+  title: 'HOBBIES',
+  placeholder: 'Photo / video',
+  caption: 'Describe this hobby',
+  todo: 'Placeholder: replace each card with a real photo or video (at least 3) and its caption.',
+};
+
+const slots = [1, 2, 3];
+---
+
+<section id="hobbies" class="relative py-24 border-t border-border">
+  <div class="mx-auto w-full max-w-[1200px] px-8">
+    <span class="section-label block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3" data-reveal>{t.label}</span>
+    <h2 class="section-title text-[clamp(2.5rem,5vw,4rem)] mb-12" data-reveal>{t.title}</h2>
+
+    <div class="grid grid-cols-3 max-md:grid-cols-1 gap-6">
+      {slots.map((n) => (
+        <figure class="flex flex-col gap-3" data-reveal>
+          {/* Replace this placeholder div with an <img src="/hobbies/..." /> or <video> */}
+          <div class="aspect-[4/3] rounded-lg border border-dashed border-border bg-bg-card flex flex-col items-center justify-center gap-2 overflow-clip">
+            <span class="font-mono text-2xl text-text-secondary/60 leading-none">0{n}</span>
+            <span class="font-mono text-[0.72rem] text-text-secondary uppercase tracking-[0.12em]">{t.placeholder}</span>
+          </div>
+          <figcaption>
+            <h3 class="text-[1.05rem] font-bold normal-case tracking-[-0.01em]">Hobby 0{n}</h3>
+            <p class="text-text-secondary text-[0.9rem] mt-1">{t.caption}</p>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+
+    <p class="mt-8 font-mono text-[0.72rem] text-text-secondary/70">{t.todo}</p>
+  </div>
+</section>

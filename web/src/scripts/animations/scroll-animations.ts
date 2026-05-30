@@ -11,6 +11,7 @@ if (prefersReducedMotion) {
       '.card',
       '.about__left',
       '.about__right',
+      '[data-reveal]',
     ],
     { opacity: 1 }
   );
@@ -111,6 +112,24 @@ if (prefersReducedMotion) {
       }
     );
   }
+
+  // ── Generic reveal-on-scroll (home presentation sections, etc.) ──
+  document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+    gsap.fromTo(
+      el,
+      { opacity: 0, y: 30 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+        ...defaults,
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 85%',
+        },
+      }
+    );
+  });
 
   // Footer: no animations — always visible
 

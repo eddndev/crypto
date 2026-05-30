@@ -1,0 +1,60 @@
+---
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+
+const t = lang === 'es' ? {
+  label: 'Educación',
+  title: 'FORMACIÓN ACADÉMICA',
+  entries: [
+    {
+      period: 'En curso',
+      degree: 'Ingeniería en Sistemas Computacionales',
+      institution: 'ESCOM · Instituto Politécnico Nacional',
+      note: null,
+    },
+    {
+      period: 'Media superior',
+      degree: 'Técnico en Sistemas Computacionales',
+      institution: 'CECyT No. 3 «Estanislao Ramírez Ruiz» (Vocacional 3) · IPN',
+      note: 'Formación cursada; sin titulación técnica.',
+    },
+  ],
+} : {
+  label: 'Education',
+  title: 'ACADEMIC BACKGROUND',
+  entries: [
+    {
+      period: 'In progress',
+      degree: 'Computer Systems Engineering',
+      institution: 'ESCOM · Instituto Politécnico Nacional (IPN)',
+      note: null,
+    },
+    {
+      period: 'High school',
+      degree: 'Computer Systems Technician',
+      institution: 'CECyT No. 3 (Vocacional 3) · IPN',
+      note: 'Coursework completed; técnico title not obtained.',
+    },
+  ],
+};
+---
+
+<section id="education" class="relative py-24 border-t border-border">
+  <div class="mx-auto w-full max-w-[1200px] px-8">
+    <span class="section-label block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3" data-reveal>{t.label}</span>
+    <h2 class="section-title text-[clamp(2.5rem,5vw,4rem)] mb-12" data-reveal>{t.title}</h2>
+
+    <div class="flex flex-col border-t border-border">
+      {t.entries.map((e) => (
+        <div class="grid grid-cols-[180px_1fr] max-md:grid-cols-1 gap-6 max-md:gap-2 py-8 border-b border-border" data-reveal>
+          <div class="font-mono text-[0.78rem] text-accent uppercase tracking-[0.08em] pt-1">{e.period}</div>
+          <div>
+            <h3 class="text-[1.3rem] font-bold normal-case tracking-[-0.01em] leading-snug">{e.degree}</h3>
+            <p class="text-text-secondary mt-1">{e.institution}</p>
+            {e.note && <p class="text-text-secondary/80 text-[0.9rem] mt-2 italic">{e.note}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

@@ -232,6 +232,7 @@
 #practices .section-title,
 .card,
 .about__left,
-.about__right {
+.about__right,
+[data-reveal] {
   opacity: 0;
 }

@@ -1,16 +1,26 @@
 ---
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
-import Hero from '../components/Hero.astro';
+import Presentation from '../components/home/Presentation.astro';
+import Education from '../components/home/Education.astro';
+import Hobbies from '../components/home/Hobbies.astro';
+import AboutCrypto from '../components/home/AboutCrypto.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Base>
+<Base
+  title="Eduardo Alonso Sánchez — Software Developer"
+  description="Personal site of Eduardo Alonso Sánchez — software developer focused on Rust, applied cryptography and WebAssembly."
+>
   <Header />
   <main class="relative overflow-hidden">
     <!-- Background blobs -->
     <div id="blob-container" class="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true"></div>
-    <Hero />
+
+    <Presentation />
+    <Education />
+    <Hobbies />
+    <AboutCrypto />
   </main>
   <Footer />
 </Base>
