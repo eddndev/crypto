@@ -428,23 +428,45 @@ struct BmpInfo {
     height: u32,
 }
 
-fn parse_bmp(data: &[u8]) -> Result<BmpInfo, JsValue> {
+// Returns a plain `String` error (not `JsValue`) so the parsing logic stays unit
+// testable on the native target — constructing a `JsValue` aborts off-wasm. The
+// wasm entry point maps the error through `err` at the boundary.
+fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
     if data.len() < 54 {
-        return Err(err("File too small to be a valid BMP"));
+        return Err("File too small to be a valid BMP".into());
     }
     if data[0] != b'B' || data[1] != b'M' {
-        return Err(err("Not a BMP file (missing BM signature)"));
+        return Err("Not a BMP file (missing BM signature)".into());
     }
     let pixel_offset = u32::from_le_bytes([data[10], data[11], data[12], data[13]]) as usize;
     let width = u32::from_le_bytes([data[18], data[19], data[20], data[21]]);
     let height_raw = i32::from_le_bytes([data[22], data[23], data[24], data[25]]);
     let height = height_raw.unsigned_abs();
     let bpp = u16::from_le_bytes([data[28], data[29]]);
+    let compression = u32::from_le_bytes([data[30], data[31], data[32], data[33]]);
     if bpp != 24 {
-        return Err(err(format!("Only 24-bit BMP supported, got {bpp}-bit")));
+        return Err(format!("Only 24-bit BMP supported, got {bpp}-bit"));
+    }
+    if compression != 0 {
+        return Err(format!(
+            "Only uncompressed BI_RGB BMP supported (compression tag {compression}). \
+             Re-export without compression / color masks."
+        ));
     }
     if pixel_offset >= data.len() {
-        return Err(err("Invalid pixel data offset"));
+        return Err("Invalid pixel data offset".into());
+    }
+    // Reject headers whose declared geometry overruns the actual file: a resaved or
+    // hand-edited BMP can claim more pixel rows than are present, which would push the
+    // index math in usable_byte_indices past the buffer and trap in WASM.
+    let row_stride = (width as u64 * 3 + 3) & !3;
+    let fits = (height as u64)
+        .checked_mul(row_stride)
+        .and_then(|body| body.checked_add(pixel_offset as u64))
+        .map(|needed| needed <= data.len() as u64)
+        .unwrap_or(false);
+    if !fits {
+        return Err("BMP geometry exceeds file size (truncated or inconsistent header)".into());
     }
     Ok(BmpInfo { pixel_offset, width, height })
 }
@@ -556,7 +578,7 @@ pub fn process_image(
         _ => return Err(err("direction must be encrypt|decrypt")),
     };
 
-    let bmp = parse_bmp(data)?;
+    let bmp = parse_bmp(data).map_err(err)?;
     let indices = usable_byte_indices(&bmp);
     let pixel_bytes: Vec<u8> = indices.iter().map(|&i| data[i]).collect();
     let body_len = pixel_bytes.len();
@@ -739,6 +761,48 @@ mod tests {
             let back = run_image("decrypt", mode, &key, &iv, &enc);
             assert_eq!(back, bmp, "{mode}: round-trip failed");
         }
+    }
+
+    #[test]
+    fn parse_bmp_rejects_compressed_and_truncated() {
+        // Compressed (BI_BITFIELDS) must be rejected, not processed into garbage.
+        let mut compressed = make_bmp(13, 7);
+        compressed[30..34].copy_from_slice(&3u32.to_le_bytes());
+        assert!(parse_bmp(&compressed).is_err());
+
+        // Header claims more rows than the file holds → must error, not trap.
+        let mut truncated = make_bmp(13, 7);
+        let row_stride = (13usize * 3 + 3) & !3;
+        truncated.truncate(truncated.len() - row_stride);
+        assert!(parse_bmp(&truncated).is_err());
+
+        let key = [0x11u8; 16];
+        let iv = [0x22u8; 16];
+        // Must return an error rather than indexing out of bounds (which would trap).
+        assert!(process_image_native("encrypt", "ECB", &key, &iv, &truncated).is_err());
+    }
+
+    /// Native mirror of the wasm `process_image` for testing the parse_bmp gate.
+    fn process_image_native(
+        direction: &str,
+        mode: &str,
+        key: &[u8; 16],
+        iv: &[u8; 16],
+        data: &[u8],
+    ) -> Result<Vec<u8>, String> {
+        let cipher = Aes128::new(&aes::cipher::generic_array::GenericArray::clone_from_slice(key));
+        let bmp = parse_bmp(data).map_err(|_| "parse failed".to_string())?;
+        let indices = usable_byte_indices(&bmp);
+        let pixels: Vec<u8> = indices.iter().map(|&i| data[i]).collect();
+        let mut trace = Vec::new();
+        let encrypt = direction == "encrypt";
+        let processed = process_body_no_pad(&cipher, mode, iv, &pixels, encrypt, &mut trace)
+            .map_err(|_| "process failed".to_string())?;
+        let mut out = data.to_vec();
+        for (i, &b) in processed.iter().enumerate() {
+            out[indices[i]] = b;
+        }
+        Ok(out)
     }
 
     #[test]

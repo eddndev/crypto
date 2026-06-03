@@ -102,11 +102,14 @@ const T = {
 } as const;
 
 async function isBmp24(file: File): Promise<boolean> {
-  if (file.size < 30) return false;
-  const head = new Uint8Array(await file.slice(0, 30).arrayBuffer());
+  if (file.size < 54) return false;
+  const head = new Uint8Array(await file.slice(0, 34).arrayBuffer());
   if (head[0] !== 0x42 || head[1] !== 0x4d) return false; // 'BM'
   const bpp = head[28] | (head[29] << 8);
-  return bpp === 24;
+  // biCompression (offset 30) must be 0 (BI_RGB); compressed / BITFIELDS images
+  // break the raw pixel-layout assumptions and would corrupt silently.
+  const compression = head[30] | (head[31] << 8) | (head[32] << 16) | (head[33] << 24);
+  return bpp === 24 && compression === 0;
 }
 
 function download(filename: string, data: Uint8Array) {

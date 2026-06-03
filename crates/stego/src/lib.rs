@@ -18,17 +18,42 @@ fn parse_bmp(data: &[u8]) -> Result<BmpInfo, String> {
     }
 
     let pixel_offset = u32::from_le_bytes([data[10], data[11], data[12], data[13]]) as usize;
-    // DIB header starts at offset 14; width is at 18, height at 22, bpp at 28
+    // DIB header starts at offset 14; width is at 18, height at 22, bpp at 28,
+    // biCompression at 30. (Valid for BITMAPINFOHEADER and the V4/V5 extensions,
+    // which keep these field offsets; the 12-byte OS/2 BITMAPCOREHEADER differs,
+    // but no mainstream editor emits it for 24-bit images.)
     let width = u32::from_le_bytes([data[18], data[19], data[20], data[21]]);
     let height_raw = i32::from_le_bytes([data[22], data[23], data[24], data[25]]);
     let height = height_raw.unsigned_abs();
     let bpp = u16::from_le_bytes([data[28], data[29]]);
+    let compression = u32::from_le_bytes([data[30], data[31], data[32], data[33]]);
 
     if bpp != 24 {
         return Err(format!("Only 24-bit BMP supported, got {bpp}-bit"));
     }
+    if compression != 0 {
+        return Err(format!(
+            "Only uncompressed BI_RGB BMP supported (compression tag {compression}). \
+             Re-export without compression / color masks."
+        ));
+    }
     if pixel_offset >= data.len() {
         return Err("Invalid pixel data offset".into());
+    }
+    // Validate that the declared geometry actually fits in the file. When a header
+    // is recalculated/edited (e.g. resaved by Paint, hand-tweaked to probe blocks),
+    // width/height/offset can describe more pixel data than is present; without this
+    // check the index math below runs past the buffer and traps in WASM.
+    let row_stride = (width as u64 * 3 + 3) & !3;
+    let fits = (height as u64)
+        .checked_mul(row_stride)
+        .and_then(|body| body.checked_add(pixel_offset as u64))
+        .map(|needed| needed <= data.len() as u64)
+        .unwrap_or(false);
+    if !fits {
+        return Err(
+            "BMP geometry exceeds file size (truncated or inconsistent header)".into(),
+        );
     }
 
     Ok(BmpInfo {
@@ -304,6 +329,27 @@ mod tests {
         let bmp = make_bmp(20, 20);
         let err = decode(&bmp).unwrap_err();
         assert_eq!(err, "No hidden message found in this image");
+    }
+
+    #[test]
+    fn parse_bmp_rejects_compressed() {
+        let mut data = make_bmp(10, 10);
+        data[30..34].copy_from_slice(&3u32.to_le_bytes()); // BI_BITFIELDS
+        assert!(parse_bmp(&data).is_err());
+    }
+
+    #[test]
+    fn parse_bmp_rejects_truncated_geometry() {
+        // Header claims 10×10 but the pixel array is a full row short → would
+        // otherwise generate out-of-bounds indices and trap in WASM.
+        let mut data = make_bmp(10, 10);
+        let row_stride = (10usize * 3 + 3) & !3;
+        data.truncate(data.len() - row_stride);
+        assert!(parse_bmp(&data).is_err());
+        // The public entry points must surface an error, not panic.
+        assert!(decode(&data).is_err());
+        assert!(encode(&data, b"x").is_err());
+        assert!(capacity(&data).is_err());
     }
 
     #[test]
