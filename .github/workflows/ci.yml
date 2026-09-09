@@ -21,8 +21,10 @@ jobs:
       - name: Test native and WebAssembly builds
         run: |
           source ../.tools/emsdk/emsdk_env.sh
+          export PATH="$(dirname "$EMSDK_NODE"):$PATH"
           npm run test:c
       - name: Build site
         run: |
           source ../.tools/emsdk/emsdk_env.sh
+          export PATH="$(dirname "$EMSDK_NODE"):$PATH"
           npm run build
