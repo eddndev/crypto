@@ -9,7 +9,9 @@ const heroElements = {
   bottom: document.querySelector('.hero__bottom'),
 };
 
-if (prefersReducedMotion) {
+// Practice pages do not contain the home hero.
+const hasHero = heroElements.label && heroElements.separator && heroElements.bottom && heroElements.titleLines.length;
+if (hasHero && prefersReducedMotion) {
   gsap.set(
     [
       heroElements.label,
@@ -20,7 +22,7 @@ if (prefersReducedMotion) {
     { opacity: 1, y: 0, clearProps: 'clipPath' }
   );
   gsap.set(heroElements.separator, { scaleX: 1 });
-} else {
+} else if (hasHero) {
   const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
   // Label — immediate

@@ -20,3 +20,9 @@ pkg/
 # Env
 .env
 .env.*
+
+# C / Emscripten and LaTeX auxiliaries (keep final PDFs)
+.tools/
+web/public/wasm/elliptic-curve/
+STIC/*/build/*
+!STIC/*/build/*.pdf

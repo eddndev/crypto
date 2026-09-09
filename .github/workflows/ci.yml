@@ -15,5 +15,14 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
+      - name: Set up C to WebAssembly compiler
+        run: bash ../scripts/setup-emsdk.sh
       - run: npm ci
-      - run: npm run build
+      - name: Test native and WebAssembly builds
+        run: |
+          source ../.tools/emsdk/emsdk_env.sh
+          npm run test:c
+      - name: Build site
+        run: |
+          source ../.tools/emsdk/emsdk_env.sh
+          npm run build

@@ -3,7 +3,11 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "build:wasm": "make -C .. wasm",
+    "test:c": "make -C .. test-c",
+    "predev": "npm run build:wasm",
     "dev": "astro dev",
+    "prebuild": "npm run build:wasm",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
