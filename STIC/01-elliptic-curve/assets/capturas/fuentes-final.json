@@ -1,0 +1,14 @@
+[
+  {
+    "file": "src/quadratic_residues.c",
+    "sha256": "8316a59da98abacd1fab42faa681ed796e678b4e2aff9ca443eb49cd7d3e38ae"
+  },
+  {
+    "file": "src/elliptic_curve.c",
+    "sha256": "c9daad4f7acc1a5eb51bf4077f8ad0a661f6e683fe69b06fda8802b382b5806a"
+  },
+  {
+    "file": "src/curve_arithmetic.c",
+    "sha256": "68fefcc50944d89977c031c539eb94fdd57f36d2096ed1310e848f9eecd27674"
+  }
+]

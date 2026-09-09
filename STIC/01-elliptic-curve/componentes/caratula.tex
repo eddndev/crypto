@@ -1,0 +1,89 @@
+\begin{titlepage}
+  \thispagestyle{empty}
+
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[ESCOMAzulOscuro]
+      (current page.north west) rectangle ([yshift=-0.55cm]current page.north east);
+    \fill[ESCOMAzul]
+      (current page.south west) rectangle ([yshift=0.28cm]current page.south east);
+    \fill[ESCOMAzulClaro]
+      ([xshift=0.9cm]current page.north west) rectangle
+      ([xshift=1.15cm]current page.south west);
+  \end{tikzpicture}
+
+  \vspace*{0.25cm}
+  \noindent
+  \begin{minipage}[c][3.1cm][c]{0.58\textwidth}
+    \includegraphics[width=0.9\linewidth,height=2.5cm,keepaspectratio]{\TrabajoLogoIPN}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[c][3.1cm][c]{0.30\textwidth}
+    \raggedleft
+    \includegraphics[height=2.6cm,keepaspectratio]{\TrabajoLogoESCOM}
+  \end{minipage}
+
+  \begin{center}
+    {\small\sffamily\bfseries\color{ESCOMAzulOscuro}
+      ESCUELA SUPERIOR DE CÓMPUTO}\par
+    \vspace{0.35cm}
+    {\color{ESCOMAzul}\rule{2.1cm}{1.2pt}}\par
+  \end{center}
+
+  \vfill
+
+  \begin{center}
+    {\small\sffamily\bfseries\color{ESCOMAzul}\MakeUppercase{\TrabajoTipo}}\par
+    \vspace{0.55cm}
+    {\fontsize{25}{30}\selectfont\bfseries\sffamily\color{ESCOMAzulOscuro}
+      \TrabajoTitulo\par}
+    \ifstrempty{\TrabajoSubtitulo}{}{%
+      \vspace{0.45cm}
+      {\large\sffamily\color{ESCOMGris}\TrabajoSubtitulo\par}}
+  \end{center}
+
+  \vfill
+
+  \begin{tcolorbox}[
+    enhanced,
+    colback=ESCOMHielo,
+    colframe=ESCOMAzulClaro,
+    boxrule=0.6pt,
+    arc=0mm,
+    outer arc=0mm,
+    left=5mm,right=5mm,top=4mm,bottom=4mm
+  ]
+    \Dato{Unidad de aprendizaje}{\TrabajoAsignatura}\hfill
+    \Dato{Grupo}{\TrabajoGrupo}
+
+    \vspace{0.55cm}
+    \Dato{Docente}{\TrabajoDocente}\hfill
+    \ifdefempty{\TrabajoPeriodo}{}{\Dato{Periodo}{\TrabajoPeriodo}}
+  \end{tcolorbox}
+
+  \vspace{0.45cm}
+
+  \begin{tcolorbox}[
+    enhanced,
+    colback=white,
+    colframe=ESCOMAzul,
+    boxrule=0pt,
+    borderline west={1.2mm}{0pt}{ESCOMAzul},
+    sharp corners,
+    left=5mm,right=3mm,top=3mm,bottom=3mm
+  ]
+    {\scriptsize\sffamily\bfseries\color{ESCOMGris}INTEGRANTES}\par
+    \vspace{0.25cm}
+    \begin{tabularx}{\linewidth}{@{}X>{\raggedleft\arraybackslash}p{3.4cm}@{}}
+      \TrabajoAutores
+    \end{tabularx}
+  \end{tcolorbox}
+
+  \vfill
+
+  \noindent
+  {\small\sffamily\color{ESCOMGris}\TrabajoLugar}
+  \hfill
+  {\small\sffamily\bfseries\color{ESCOMAzulOscuro}\TrabajoFecha}
+
+\end{titlepage}
+\clearpage

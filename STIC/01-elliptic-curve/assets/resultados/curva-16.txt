@@ -1,0 +1,8 @@
+$ ./build/elliptic-curve generate 16 20260924
+bits = 16
+seed = 20260924
+Miller-Rabin: 32 rondas (primo probable)
+p = 55871
+a = 19560
+b = 12704
+4*a^3 + 27*b^2 != 0 (mod p)

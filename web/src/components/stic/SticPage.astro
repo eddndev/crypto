@@ -1,0 +1,46 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import PracticeCard from '../PracticeCard.astro';
+import EllipticCurveWorkspace from './EllipticCurveWorkspace';
+
+interface Props { lang?: 'en' | 'es'; practice?: boolean; }
+const { lang = 'en', practice = false } = Astro.props;
+const es = lang === 'es';
+const root = es ? '/es/stic' : '/stic';
+const course = 'Selected Topics in Cryptography';
+const description = es
+  ? 'Prácticas de Cripto 2. Una nueva colección para explorar temas de criptografía.'
+  : 'Cryptography 2 practices. A new collection for exploring topics in cryptography.';
+---
+
+<Base title={`${practice ? 'Elliptic Curve' : 'Practices'} — ${course}`} description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-32 pb-24 max-md:px-5">
+    <a href={practice ? root : (es ? '/es/practices' : '/practices')} class="inline-block mb-10 font-mono text-sm text-text-secondary hover:text-accent">
+      ← {practice ? (es ? 'Prácticas de Cripto 2' : 'Cryptography 2 practices') : (es ? 'Todas las prácticas' : 'All practices')}
+    </a>
+    <p class="font-mono text-sm text-accent uppercase tracking-widest mb-4">
+      {es ? 'Cripto 2' : 'Cryptography 2'} / {practice ? '01' : 'STIC'}
+    </p>
+    <h1 class="text-[clamp(2.2rem,5vw,4.5rem)] font-bold leading-[1.08] tracking-tight uppercase max-w-[900px] mb-6">
+      {practice ? 'Elliptic Curve' : course}
+    </h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[720px] mb-12">
+      {practice
+        ? (es ? 'Calcula residuos cuadráticos y sus raíces, enumera los puntos racionales de una curva elíptica guarda los puntos en un archivo y prueba la generación de curvas, la suma y la duplicación.' : 'Compute quadratic residues and their roots, enumerate the rational points of an elliptic curve, save the points to a file, and test curve generation, addition and doubling.')
+        : description}
+    </p>
+
+    {practice ? (
+      <EllipticCurveWorkspace lang={lang} client:load />
+    ) : (
+      <div class="practices__grid grid grid-cols-2 max-md:grid-cols-1 gap-px border border-border bg-border">
+        <PracticeCard title="Elliptic Curve" description={es ? 'Residuos cuadráticos, raíces y puntos racionales. Prueba cada función y descarga los puntos de tu curva.' : 'Quadratic residues, roots, and rational points. Test each function and download the points on your curve.'} tags={['elliptic curves', 'C', 'WebAssembly']} index={1} comingSoon={false} href={`${root}/elliptic-curve`} />
+      </div>
+    )}
+  </main>
+  <Footer lang={lang} />
+</Base>
+

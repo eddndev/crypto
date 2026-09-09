@@ -1,43 +1,25 @@
-# Astro Starter Kit: Minimal
+# Crypto web
 
-```sh
-npm create astro@latest -- --template minimal
+Astro frontend for Introductory Cryptography (Rust) and Selected Topics in
+Cryptography (C17). See [repository setup](../README.md).
+
+From the repository root, run `bash scripts/setup-emsdk.sh` and
+`source .tools/emsdk/emsdk_env.sh`. Then, from this directory:
+
+```bash
+npm ci
+npm run dev
+npm run build
+npm run preview
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+`dev` and `build` compile the Elliptic Curve C source to WebAssembly first.
+Run `npm run build:wasm` after editing C during development, then reload the
+page. `npm run test:c` tests the native/WASM integration.
 
-## 🚀 Project Structure
+The new course is at `/stic` (English) and `/es/stic` (Spanish).
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Elliptic Curve has independent controls for residues, rational points, curve
+generation, point addition and doubling. Big integer parameters stay as decimal
+strings; a Web Worker runs the C arithmetic without blocking the interface.
+The C dependency restriction does not apply to web frameworks.

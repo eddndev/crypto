@@ -1,0 +1,8 @@
+C17 estricto: compilacion sin advertencias (-pedantic-errors -Wall -Wextra -Werror).
+Pruebas nativas: residuos, 444 curvas, archivos, aritmetica modular y puntos hasta 2048 bits.
+Pruebas WASM: resultados iguales a C y generacion de 16, 32, 64, 512, 1024 y 2048 bits.
+Navegador: formularios separados, puntos invalidos, interfaz movil e ingles; sin errores de ejecucion.
+Astro: construccion de las 18 rutas aprobada.
+TypeScript global: errores en los modulos anteriores RSA/AES; ninguno reportado en STIC.
+PDF: 13 paginas renderizadas y revisadas; sin recortes ni advertencias de LaTeX.
+SHA256 PDF: c53d761297ecd39059c8d772ff4c4565272c16fcb9fcf6c3b056898b2c5e72a1

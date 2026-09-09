@@ -1,0 +1,27 @@
+% Encabezado y pie para las páginas interiores.
+\fancypagestyle{escom}{%
+  \fancyhf{}
+  \fancyhead[L]{\small\sffamily\bfseries\color{ESCOMAzulOscuro}\TrabajoTituloCorto}
+  \fancyhead[R]{\small\sffamily\color{ESCOMGris}\TrabajoAsignatura}
+  \fancyfoot[L]{\scriptsize\sffamily\color{ESCOMGris}ESCOM · Instituto Politécnico Nacional}
+  \fancyfoot[R]{\small\sffamily\bfseries\color{ESCOMAzul}\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \renewcommand{\headrule}{%
+    \hbox to\headwidth{\color{ESCOMAzul}\leaders\hrule height 0.7pt\hfill}}
+}
+\pagestyle{escom}
+
+% Algunas páginas de flotantes y bibliografía solicitan el estilo plain.
+% Se conserva el mismo encabezado para que no haya saltos visuales.
+\fancypagestyle{plain}{%
+  \fancyhf{}
+  \fancyhead[L]{\small\sffamily\bfseries\color{ESCOMAzulOscuro}\TrabajoTituloCorto}
+  \fancyhead[R]{\small\sffamily\color{ESCOMGris}\TrabajoAsignatura}
+  \fancyfoot[L]{\scriptsize\sffamily\color{ESCOMGris}ESCOM · Instituto Politécnico Nacional}
+  \fancyfoot[R]{\small\sffamily\bfseries\color{ESCOMAzul}\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+  \renewcommand{\headrule}{%
+    \hbox to\headwidth{\color{ESCOMAzul}\leaders\hrule height 0.7pt\hfill}}
+}

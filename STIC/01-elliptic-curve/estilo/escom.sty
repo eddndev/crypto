@@ -1,0 +1,233 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{estilo/escom}[2026/09/01 Sistema visual ESCOM para trabajos escolares]
+
+% --- Idioma y tipografía ------------------------------------------------------
+\RequirePackage{iftex}
+\ifPDFTeX
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage{lmodern}
+\else
+  \RequirePackage{fontspec}
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+  \IfFontExistsTF{Libertinus Serif}
+    {\setmainfont{Libertinus Serif}}
+    {\setmainfont{TeX Gyre Pagella}}
+  \IfFontExistsTF{Montserrat}
+    {\setsansfont{Montserrat}}
+    {\setsansfont{TeX Gyre Heros}}
+  \IfFontExistsTF{JetBrains Mono}
+    {\setmonofont{JetBrains Mono}}
+    {\setmonofont{Latin Modern Mono}}
+\fi
+\RequirePackage[spanish,es-nodecimaldot]{babel}
+
+% --- Base de composición ------------------------------------------------------
+\RequirePackage[letterpaper,top=2.45cm,bottom=2.45cm,left=2.65cm,right=2.65cm,
+  headheight=22pt,headsep=0.65cm,footskip=1.15cm]{geometry}
+\RequirePackage{microtype}
+\RequirePackage{setspace}
+\RequirePackage{ragged2e}
+\setstretch{1.08}
+\setlength{\parindent}{1.15em}
+\setlength{\parskip}{0.18em}
+\setlength{\emergencystretch}{2em}
+
+% --- Paleta ------------------------------------------------------------------
+\RequirePackage[table]{xcolor}
+\definecolor{ESCOMAzul}{HTML}{006699}
+\definecolor{ESCOMAzulOscuro}{HTML}{003B5C}
+\definecolor{ESCOMAzulMedio}{HTML}{2C8BB3}
+\definecolor{ESCOMAzulClaro}{HTML}{DDEFF6}
+\definecolor{ESCOMHielo}{HTML}{F2F8FB}
+\definecolor{ESCOMTinta}{HTML}{18313D}
+\definecolor{ESCOMGris}{HTML}{607580}
+\definecolor{IPNGuinda}{HTML}{762042}
+\color{ESCOMTinta}
+
+% --- Paquetes académicos ------------------------------------------------------
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{tabularx}
+\RequirePackage{array}
+\RequirePackage{longtable}
+\RequirePackage{amsmath}
+\RequirePackage{amssymb}
+\RequirePackage{mathtools}
+\RequirePackage{siunitx}
+\sisetup{output-decimal-marker={,},group-separator={\,},per-mode=symbol}
+\RequirePackage{enumitem}
+\setlist{nosep,leftmargin=1.5em,itemsep=0.2em,topsep=0.35em}
+\setlist[itemize]{label=\textcolor{ESCOMAzul}{\small\textbullet}}
+\RequirePackage{float}
+\RequirePackage{caption}
+\captionsetup{font=small,labelfont={bf,color=ESCOMAzulOscuro},
+  textfont={color=ESCOMTinta},labelsep=period,justification=centering}
+\RequirePackage{subcaption}
+\RequirePackage{listings}
+\RequirePackage{etoolbox}
+\RequirePackage{tikz}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{titlesec}
+\RequirePackage{fancyhdr}
+\RequirePackage[numbers,sort&compress]{natbib}
+
+% --- Enlaces y referencias cruzadas ------------------------------------------
+\RequirePackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=ESCOMAzulOscuro,
+  citecolor=ESCOMAzul,
+  urlcolor=ESCOMAzul,
+  pdfborder={0 0 0},
+  bookmarksopen=true
+}
+\RequirePackage[nameinlink,noabbrev]{cleveref}
+\crefname{figure}{figura}{figuras}
+\Crefname{figure}{Figura}{Figuras}
+\crefname{table}{tabla}{tablas}
+\Crefname{table}{Tabla}{Tablas}
+\crefname{equation}{ecuación}{ecuaciones}
+\Crefname{equation}{Ecuación}{Ecuaciones}
+
+% --- Jerarquía de títulos -----------------------------------------------------
+\titleformat{\section}
+  {\Large\bfseries\sffamily\color{ESCOMAzulOscuro}}
+  {\colorbox{ESCOMAzul}{\parbox[c][1.55em][c]{2.25em}{\centering\color{white}\thesection}}}
+  {0.75em}{}
+\titleformat{\subsection}
+  {\large\bfseries\sffamily\color{ESCOMAzul}}
+  {\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalsize\bfseries\sffamily\color{ESCOMAzulOscuro}}
+  {\thesubsubsection}{0.55em}{}
+\titlespacing*{\section}{0pt}{2.2ex plus 0.8ex minus 0.2ex}{1.1ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus 0.6ex minus 0.2ex}{0.7ex}
+
+% --- Metadatos ---------------------------------------------------------------
+\newcommand{\TrabajoTitulo}{Título del trabajo}
+\newcommand{\TrabajoTituloCorto}{Trabajo escolar}
+\newcommand{\TrabajoSubtitulo}{}
+\newcommand{\TrabajoTipo}{Reporte}
+\newcommand{\TrabajoAsignatura}{Unidad de aprendizaje}
+\newcommand{\TrabajoDocente}{Docente}
+\newcommand{\TrabajoGrupo}{Grupo}
+\newcommand{\TrabajoPeriodo}{Periodo escolar}
+\newcommand{\TrabajoLugar}{Ciudad de México}
+\newcommand{\TrabajoFecha}{\today}
+\newcommand{\TrabajoLogoIPN}{assets/logos/ipn-horizontal.pdf}
+\newcommand{\TrabajoLogoESCOM}{assets/logos/escom.png}
+\newcommand{\TrabajoAutores}{}
+
+\newcommand{\Titulo}[1]{\renewcommand{\TrabajoTitulo}{#1}}
+\newcommand{\TituloCorto}[1]{\renewcommand{\TrabajoTituloCorto}{#1}}
+\newcommand{\Subtitulo}[1]{\renewcommand{\TrabajoSubtitulo}{#1}}
+\newcommand{\TipoTrabajo}[1]{\renewcommand{\TrabajoTipo}{#1}}
+\newcommand{\Asignatura}[1]{\renewcommand{\TrabajoAsignatura}{#1}}
+\newcommand{\Docente}[1]{\renewcommand{\TrabajoDocente}{#1}}
+\newcommand{\Grupo}[1]{\renewcommand{\TrabajoGrupo}{#1}}
+\newcommand{\Periodo}[1]{\renewcommand{\TrabajoPeriodo}{#1}}
+\newcommand{\Lugar}[1]{\renewcommand{\TrabajoLugar}{#1}}
+\newcommand{\FechaEntrega}[1]{\renewcommand{\TrabajoFecha}{#1}}
+\newcommand{\LogoIPN}[1]{\renewcommand{\TrabajoLogoIPN}{#1}}
+\newcommand{\LogoESCOM}[1]{\renewcommand{\TrabajoLogoESCOM}{#1}}
+\newcommand{\Autor}[2]{\gappto\TrabajoAutores{#1 & #2\\}}
+
+% --- Componentes semánticos --------------------------------------------------
+\tcbset{
+  escomBase/.style={
+    enhanced,
+    breakable,
+    boxrule=0pt,
+    arc=0mm,
+    outer arc=0mm,
+    left=4mm,right=4mm,top=2.8mm,bottom=2.8mm,
+    before skip=0.9em,after skip=0.9em,
+    before upper=\RaggedRight,
+    fonttitle=\bfseries\sffamily,
+    coltitle=white
+  }
+}
+
+\newtcolorbox{ideaClave}[1][Idea clave]{
+  escomBase,
+  colback=ESCOMAzulClaro,
+  borderline west={1.4mm}{0pt}{ESCOMAzul},
+  title=#1,
+  colbacktitle=ESCOMAzul,
+  attach boxed title to top left={xshift=3mm,yshift=-2mm},
+  boxed title style={boxrule=0pt,arc=0mm,outer arc=0mm,left=2.5mm,right=2.5mm}
+}
+
+\newtcolorbox{notaTecnica}[1][Nota técnica]{
+  escomBase,
+  colback=ESCOMHielo,
+  colframe=ESCOMAzulMedio,
+  boxrule=0.45pt,
+  title=#1,
+  colbacktitle=ESCOMAzulOscuro
+}
+
+\newtcolorbox{resultado}[1][Resultado]{
+  escomBase,
+  colback=white,
+  borderline north={0.7pt}{0pt}{ESCOMAzul},
+  borderline south={0.7pt}{0pt}{ESCOMAzul},
+  title=#1,
+  colbacktitle=ESCOMAzul
+}
+
+\newcommand{\Dato}[2]{%
+  \begin{minipage}[t]{0.48\linewidth}
+    {\scriptsize\sffamily\bfseries\color{ESCOMGris}\MakeUppercase{#1}}\\[-0.15em]
+    {\normalsize\color{ESCOMTinta}#2}
+  \end{minipage}%
+}
+
+\newcommand{\FiguraESCOM}[4][0.82\linewidth]{%
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#1]{#2}
+    \caption{#3}
+    \label{#4}
+  \end{figure}
+}
+
+\newcommand{\Fuente}[1]{%
+  \par\vspace{-0.45em}
+  {\centering\footnotesize\color{ESCOMGris}\textit{Fuente: #1.}\par}
+}
+
+% --- Código ------------------------------------------------------------------
+\lstdefinestyle{escom}{
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{ESCOMAzulOscuro},
+  commentstyle=\itshape\color{ESCOMGris},
+  stringstyle=\color{ESCOMAzul},
+  backgroundcolor=\color{ESCOMHielo},
+  frame=single,
+  rulecolor=\color{ESCOMAzulClaro},
+  framerule=0.5pt,
+  framesep=4pt,
+  breaklines=true,
+  numbers=left,
+  numberstyle=\scriptsize\color{ESCOMGris},
+  numbersep=8pt,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b
+}
+\lstset{style=escom}
+\renewcommand{\lstlistingname}{Código}
+
+% --- Detalles finales ---------------------------------------------------------
+\renewcommand{\contentsname}{Contenido}
+\renewcommand{\refname}{Referencias}
+\renewcommand{\arraystretch}{1.2}
+\AtBeginDocument{%
+  \hypersetup{
+    pdftitle={\TrabajoTitulo},
+    pdfsubject={\TrabajoAsignatura},
+    pdfauthor={Comunidad estudiantil ESCOM}
+  }
+}

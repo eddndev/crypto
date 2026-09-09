@@ -1,0 +1,7 @@
+El programa C no usa OpenSSL. Se utilizo su CLI solo como comprobacion externa de los seis resultados.
+16 bits: comprobacion independiente de primalidad aprobada
+32 bits: comprobacion independiente de primalidad aprobada
+64 bits: comprobacion independiente de primalidad aprobada
+512 bits: comprobacion independiente de primalidad aprobada
+1024 bits: comprobacion independiente de primalidad aprobada
+2048 bits: comprobacion independiente de primalidad aprobada

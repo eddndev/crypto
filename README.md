@@ -1,8 +1,8 @@
 # Crypto
 
-Interactive cryptography practices built with Rust, compiled to WebAssembly, running entirely in the browser.
+Interactive cryptography practices built with Rust and C, compiled to WebAssembly, running entirely in the browser.
 
-Each practice implements a real cryptographic algorithm in Rust. Upload files, transform data, and see results in real time — no servers involved.
+The introductory practices implement cryptographic algorithms in Rust. The new Selected Topics in Cryptography section uses C17 and Emscripten. Upload files, transform data, and see results in real time — no servers involved.
 
 ```
 cargo build                                    # build all crates
@@ -12,7 +12,35 @@ cd web && npm run dev                          # start dev server
 
 ---
 
-## Practices
+## Selected Topics in Cryptography (Cripto 2)
+
+New section: [`STIC/`](STIC/README.md). First practice:
+[Elliptic Curve](STIC/01-elliptic-curve/README.md), with native C17 and
+WebAssembly builds. Compute quadratic residues and roots, enumerate rational points,
+export points to a text file, generate curves up to 2048 bits, and add or double
+points. The C implementation uses only its standard library; big integers are
+implemented manually with arrays.
+The original Rust practices remain in `crates/`.
+
+```bash
+bash scripts/setup-emsdk.sh
+source .tools/emsdk/emsdk_env.sh
+make c
+make test-c
+cd web
+npm ci
+npm run dev
+```
+
+`npm run dev` and `npm run build` generate the new C module automatically;
+Emscripten must be active in the terminal. Rebuild after editing C sources
+with `npm run build:wasm`. CI and deployment generate and test this module
+before building the site. Generated C binaries and SDK files are ignored.
+
+Routes: `/stic`, `/stic/elliptic-curve`, `/es/stic`, and
+`/es/stic/elliptic-curve`.
+
+## Introductory practices
 
 ### Steganography
 
@@ -76,7 +104,8 @@ crypto/
 
 ### Prerequisites
 
-- [Rust](https://rustup.rs/) (stable)
+- [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) 4.0.15, GNU Make, and a C17 compiler (for STIC)
+- [Rust](https://rustup.rs/) (stable, for the introductory crates)
 - [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
 - [Node.js](https://nodejs.org/) (v18+)
 
@@ -108,8 +137,8 @@ cargo test --workspace
 
 | Layer | Technology |
 |-------|-----------|
-| Algorithms | Rust |
-| WASM bindings | wasm-bindgen |
+| Algorithms | Rust / C17 |
+| WASM bindings | wasm-bindgen / Emscripten |
 | Frontend | Astro, GSAP, Lenis |
 | Hosting | Cloudflare Pages |
 

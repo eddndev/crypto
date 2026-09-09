@@ -14,11 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up C to WebAssembly compiler
+        run: bash ../scripts/setup-emsdk.sh
+
       - name: Install dependencies
         run: npm ci
 
       - name: Build
-        run: npm run build
+        run: |
+          source ../.tools/emsdk/emsdk_env.sh
+          npm run test:c
+          npm run build
 
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy dist --project-name=crypto-web

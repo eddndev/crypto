@@ -1,0 +1,39 @@
+$ ./build/elliptic-curve qr 7
+p = 7
+QR_p (nonzero squares) = {1, 2, 4}
+Residue -> square roots modulo p
+0 -> {0} (zero is listed separately)
+1 -> {1, 6}
+2 -> {3, 4}
+4 -> {2, 5}
+
+$ ./build/elliptic-curve curve 7 2 3 build/puntos-p7.txt
+p = 7
+a = 2
+b = 3
+E: y^2 = x^3 + a*x + b (mod p)
+Rational points (x, y, z):
+(2, 1, 1)
+(2, 6, 1)
+(3, 1, 1)
+(3, 6, 1)
+(6, 0, 1)
+(0, 1, 0)
+Total points (including infinity): 6
+Saved to: build/puntos-p7.txt
+
+$ ./build/elliptic-curve generate 16 20260924
+bits = 16
+seed = 20260924
+Miller-Rabin: 32 rondas (primo probable)
+p = 55871
+a = 19560
+b = 12704
+4*a^3 + 27*b^2 != 0 (mod p)
+
+$ ./build/elliptic-curve add 65537 1 1 49606 64426 1 2565 62370 1
+P + Q = (43190, 62760, 1)
+
+$ ./build/elliptic-curve double 65537 1 1 49606 64426 1
+2P = (27838, 52313, 1)
+
