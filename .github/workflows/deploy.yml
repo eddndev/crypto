@@ -23,6 +23,7 @@ jobs:
       - name: Build
         run: |
           source ../.tools/emsdk/emsdk_env.sh
+          export PATH="$(dirname "$EMSDK_NODE"):$PATH"
           npm run test:c
           npm run build
 
