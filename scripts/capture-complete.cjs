@@ -104,7 +104,7 @@ const escape = text => text.replaceAll('&','&amp;').replaceAll('<','&lt;').repla
     await web.waitForFunction(()=>document.querySelector('#generate-output')?.textContent?.includes('bits = 2048'),{},{timeout:60000});
     const generated=await web.locator('#generate-output').innerText();
     assert.equal(BigInt(generated.match(/^p = (\d+)$/m)[1]).toString(2).length,2048);
-    await web.locator('#double-section input[name=py]').fill('0');
+    await web.locator('#double-section input[name=y1]').fill('0');
     await web.getByRole('button',{name:'Duplicar punto',exact:true}).click();
     await web.getByRole('alert').waitFor();
     assert.match(await web.getByRole('alert').innerText(),/no pertenece/);

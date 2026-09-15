@@ -12,7 +12,7 @@ export default function CurveArithmeticWorkspace({ lang }: { lang: 'es' | 'en' }
   function run(event: FormEvent<HTMLFormElement>, operation: string) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const names = operation === 'generate' ? ['bits', 'seed'] : ['p', 'a', 'b', 'px', 'py', 'pz', ...(operation === 'add' ? ['qx', 'qy', 'qz'] : [])];
+    const names = operation === 'generate' ? ['bits', 'seed'] : ['p', 'a', 'b', 'x1', 'y1', 'z1', ...(operation === 'add' ? ['x2', 'y2', 'z2'] : [])];
     const values = names.map(name => String(data.get(name) ?? '').trim());
     if (values.some(value => !/^\d+$/.test(value) || value.length > 617)) {
       setError(es ? 'Escribe enteros no negativos en decimal.' : 'Enter nonnegative decimal integers.'); return;
@@ -33,7 +33,10 @@ export default function CurveArithmeticWorkspace({ lang }: { lang: 'es' | 'en' }
     job.postMessage({ command: `${operation} ${values.join(' ')}` });
   }
   function result(operation: string) {
-    return output[operation] && <pre id={`${operation}-output`} className="mt-6 p-4 bg-[#0c0c12] text-sm font-mono whitespace-pre-wrap break-all max-h-[640px] overflow-auto" tabIndex={0}>{output[operation]}</pre>;
+    return output[operation] && <div className="mt-6">
+      {operation !== 'generate' && <p className="mb-2 font-mono text-sm text-text-secondary">{es ? 'Resultado' : 'Result'} (x3, y3, z3)</p>}
+      <pre id={`${operation}-output`} className="p-4 bg-[#0c0c12] text-sm font-mono whitespace-pre-wrap break-all max-h-[640px] overflow-auto" tabIndex={0}>{output[operation]}</pre>
+    </div>;
   }
   return <div className="mt-12" id="arithmetic-workspace">
     <h2 className="text-3xl font-bold mb-4">{es ? 'Aritmética de curvas elípticas' : 'Elliptic curve arithmetic'}</h2>
@@ -56,10 +59,10 @@ export default function CurveArithmeticWorkspace({ lang }: { lang: 'es' | 'en' }
           <div className="grid grid-cols-3 gap-3">
             {[['p','65537'],['a','1'],['b','1']].map(([name,value]) => <label key={name}>{name}<input name={name} inputMode="numeric" pattern="[0-9]+" defaultValue={value} required className={input} /></label>)}
           </div>
-          {(operation === 'add' ? ['p','q'] : ['p']).map(point => <fieldset key={point} className="mt-4">
-            <legend>{point.toUpperCase()} (x, y, z)</legend>
+          {(operation === 'add' ? [1,2] : [1]).map(point => <fieldset key={point} className="mt-4">
+            <legend>{point === 1 ? 'P' : 'Q'} (x{point}, y{point}, z{point})</legend>
             <div className="grid grid-cols-[1fr_1fr_70px] gap-3">
-              {['x','y','z'].map((coord,i) => <label key={coord}>{coord}<input name={point+coord} aria-label={`${point.toUpperCase()} ${coord}`} inputMode="numeric" pattern="[0-9]+" defaultValue={(point === 'p' ? ['49606','64426','1'] : ['2565','62370','1'])[i]} required className={input} /></label>)}
+              {['x','y','z'].map((coord,i) => <label key={coord}>{coord}{point}<input name={`${coord}${point}`} aria-label={`${coord}${point}`} inputMode="numeric" pattern="[0-9]+" defaultValue={(point === 1 ? ['49606','64426','1'] : ['2565','62370','1'])[i]} required className={input} /></label>)}
             </div>
           </fieldset>)}
           <button disabled={!!busy} className={button}>{operation === 'add' ? (es ? 'Sumar puntos' : 'Add points') : (es ? 'Duplicar punto' : 'Double point')}</button>
