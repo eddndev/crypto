@@ -24,6 +24,7 @@ pkg/
 # C / Emscripten
 .tools/
 web/public/wasm/elliptic-curve/
+web/public/wasm/toy-ecdh/
 
 # Local coursework and report utilities
 /STIC/

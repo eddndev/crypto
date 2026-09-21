@@ -12,6 +12,7 @@ All practices share one catalog at `/practices` (English) and `/es/practices`
 4. RSA Hybrid Encryption
 5. AES Modes of Operation
 6. Elliptic Curve
+7. Toy ECDH
 
 Elliptic Curve computes quadratic residues and roots, enumerates rational points,
 exports points to a text file, generates curves up to 2048 bits, and adds or
@@ -24,7 +25,8 @@ big integers implemented manually using arrays.
 crypto/
 ├── Cargo.toml                 Rust workspace
 ├── crates/                    Rust implementations of the first five practices
-├── c/elliptic-curve/           C17 source, headers, native/WASM build and tests
+├── c/elliptic-curve/           C17 point arithmetic and tests
+├── c/toy-ecdh/                 C17 scalar multiplication and ECDH
 ├── scripts/                   Emscripten setup and native/WASM parity tests
 ├── web/                       Astro frontend and practice interfaces
 │   ├── src/components/        Shared UI and practice workspaces
@@ -37,7 +39,7 @@ crypto/
 `STIC/` contains local coursework, reports, screenshots and other delivery
 materials. It is ignored by Git and is not required to build or deploy the site.
 Report capture and result-generation utilities in `scripts/` are also local and
-ignored. The public C implementation lives in [`c/elliptic-curve`](c/elliptic-curve/).
+ignored. The public C implementations live in [`c/`](c/).
 
 ## Development
 
@@ -53,26 +55,32 @@ npm --prefix web ci
 make dev
 ```
 
-`make dev` and `make build` compile the C module to WebAssembly automatically.
+`make dev` and `make build` compile the C modules to WebAssembly automatically.
 During development, run `make wasm` after editing C sources, then reload the page.
 Generated C binaries, WebAssembly output and SDK files are ignored.
 
 ```bash
-make c       # native C executable
+make c       # native C executables
 make test-c  # native arithmetic tests and C/WebAssembly parity
 make test    # C/WebAssembly tests and Rust workspace tests
 make build   # production site in web/dist/
 ```
 
-The C build and tests use only `c/elliptic-curve/`, `scripts/` and `web/`; they do
+The C build and tests use only `c/`, `scripts/` and `web/`; they do
 not read reports or screenshots. Local reports can still be compiled separately
-with `make -C STIC/01-elliptic-curve report` when that directory is present.
+with `make -C STIC/01-elliptic-curve report` or
+`make -C STIC/02-toy-ecdh report` when those directories are present.
 
 ## Routes and deployment
 
 Elliptic Curve is available at `/practices/elliptic-curve` and
 `/es/practices/elliptic-curve`. Previous `/stic` catalog and practice URLs redirect
 to the corresponding shared routes through `web/public/_redirects`.
+
+Toy ECDH is available at `/practices/toy-ecdh` and `/es/practices/toy-ecdh`.
+It compares RTL/LTR iteration traces and computes `A=rG`, `B=sG`, `K_A=rB`
+and `K_B=sA`. See [`c/toy-ecdh/README.md`](c/toy-ecdh/README.md) for CLI usage
+and the limits of this classroom implementation.
 
 Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
 The deploy workflow publishes `web/dist/` to the Cloudflare Pages project

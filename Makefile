@@ -1,6 +1,6 @@
-.PHONY: dev build test c wasm test-c
+.PHONY: dev build test c wasm test-c $(addprefix native-,elliptic-curve toy-ecdh) $(addprefix wasm-,elliptic-curve toy-ecdh) $(addprefix test-,elliptic-curve toy-ecdh)
 
-PRACTICE := c/elliptic-curve
+PRACTICES := elliptic-curve toy-ecdh
 
 dev:
 	npm --prefix web run dev
@@ -11,11 +11,15 @@ build:
 test: test-c
 	cargo test --workspace
 
-c:
-	$(MAKE) -C $(PRACTICE) native
+c: $(addprefix native-,$(PRACTICES))
+wasm: $(addprefix wasm-,$(PRACTICES))
+test-c: $(addprefix test-,$(PRACTICES))
 
-wasm:
-	$(MAKE) -C $(PRACTICE) wasm
+$(addprefix native-,$(PRACTICES)):
+	$(MAKE) -C c/$(patsubst native-%,%,$@) native
 
-test-c:
-	$(MAKE) -C $(PRACTICE) test
+$(addprefix wasm-,$(PRACTICES)):
+	$(MAKE) -C c/$(patsubst wasm-%,%,$@) wasm
+
+$(addprefix test-,$(PRACTICES)):
+	$(MAKE) -C c/$(patsubst test-%,%,$@) test

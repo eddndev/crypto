@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import ToyEcdhWorkspace from './ToyEcdhWorkspace';
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const description = es
+  ? 'Recorre la multiplicación escalar bit a bit y acuerda un punto secreto con ECDH. Compara los algoritmos RTL y LTR con enteros de hasta 2048 bits.'
+  : 'Follow scalar multiplication bit by bit and agree on a secret point with ECDH. Compare RTL and LTR algorithms with integers up to 2048 bits.';
+---
+<Base title="Toy ECDH — Cryptography" description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={es ? '/es/practices' : '/practices'} class="inline-flex gap-2 font-mono text-sm text-text-secondary hover:text-accent mb-8">
+      ← {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-sm text-accent uppercase tracking-widest mb-3">{es ? 'Práctica' : 'Practice'} 07</span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-tight uppercase mb-4">Toy ECDH</h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[760px] mb-10">{description}</p>
+    <ToyEcdhWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>
