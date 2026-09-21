@@ -1,0 +1,30 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import EllipticCurveWorkspace from './EllipticCurveWorkspace';
+
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const practicesHref = es ? '/es/practices' : '/practices';
+const description = es
+  ? 'Calcula residuos cuadráticos y sus raíces, enumera los puntos racionales de una curva elíptica y guárdalos en un archivo. Prueba la generación de curvas, la suma y la duplicación de puntos.'
+  : 'Compute quadratic residues and their roots, enumerate the rational points of an elliptic curve, and save them to a file. Test curve generation, point addition, and doubling.';
+---
+
+<Base title={`Elliptic Curve — ${es ? 'Criptografía' : 'Cryptography'}`} description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={practicesHref} class="inline-flex items-center gap-2 font-mono text-[0.8rem] text-text-secondary hover:text-accent transition-colors duration-200 mb-8">
+      <span>←</span> {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-[0.8rem] text-accent uppercase tracking-[0.1em] mb-3">
+      {es ? 'Práctica' : 'Practice'} 06
+    </span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-[-0.02em] uppercase mb-4">Elliptic Curve</h1>
+    <p class="text-text-secondary text-[1.05rem] leading-relaxed max-w-[720px] mb-12">{description}</p>
+    <EllipticCurveWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>

@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import createModule from '../web/public/wasm/elliptic-curve/elliptic-curve.mjs';
 
-const binary = fileURLToPath(new URL('../STIC/01-elliptic-curve/build/elliptic-curve', import.meta.url));
+const binary = fileURLToPath(new URL('../c/elliptic-curve/build/elliptic-curve', import.meta.url));
 const wasmBinary = await readFile(new URL('../web/public/wasm/elliptic-curve/elliptic-curve.wasm', import.meta.url));
 let lines = [];
 const module = await createModule({ wasmBinary, print: line => lines.push(line), printErr: () => {} });

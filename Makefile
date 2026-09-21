@@ -1,6 +1,6 @@
-.PHONY: dev build test c wasm test-c report
+.PHONY: dev build test c wasm test-c
 
-PRACTICE := STIC/01-elliptic-curve
+PRACTICE := c/elliptic-curve
 
 dev:
 	npm --prefix web run dev
@@ -19,6 +19,3 @@ wasm:
 
 test-c:
 	$(MAKE) -C $(PRACTICE) test
-
-report:
-	$(MAKE) -C $(PRACTICE) report

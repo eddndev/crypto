@@ -1,148 +1,91 @@
 # Crypto
 
-Interactive cryptography practices built with Rust and C, compiled to WebAssembly, running entirely in the browser.
+Interactive cryptography practices built with Rust and C17, compiled to
+WebAssembly, and run entirely in the browser.
 
-The introductory practices implement cryptographic algorithms in Rust. The new Selected Topics in Cryptography section uses C17 and Emscripten. Upload files, transform data, and see results in real time — no servers involved.
+All practices share one catalog at `/practices` (English) and `/es/practices`
+(Spanish):
 
+1. Steganography
+2. Affine Cipher
+3. Matrix Calculator
+4. RSA Hybrid Encryption
+5. AES Modes of Operation
+6. Elliptic Curve
+
+Elliptic Curve computes quadratic residues and roots, enumerates rational points,
+exports points to a text file, generates curves up to 2048 bits, and adds or
+doubles points. Its C17 implementation uses only the standard library, with
+big integers implemented manually using arrays.
+
+## Project structure
+
+```text
+crypto/
+├── Cargo.toml                 Rust workspace
+├── crates/                    Rust implementations of the first five practices
+├── c/elliptic-curve/           C17 source, headers, native/WASM build and tests
+├── scripts/                   Emscripten setup and native/WASM parity tests
+├── web/                       Astro frontend and practice interfaces
+│   ├── src/components/        Shared UI and practice workspaces
+│   ├── src/pages/practices/   English catalog and practices
+│   ├── src/pages/es/practices/ Spanish catalog and practices
+│   └── public/                Static assets and legacy URL redirects
+└── .github/workflows/         CI and Cloudflare Pages deployment
 ```
-cargo build                                    # build all crates
-wasm-pack build crates/stego --target web      # compile to WASM
-cd web && npm run dev                          # start dev server
-```
 
----
+`STIC/` contains local coursework, reports, screenshots and other delivery
+materials. It is ignored by Git and is not required to build or deploy the site.
+Report capture and result-generation utilities in `scripts/` are also local and
+ignored. The public C implementation lives in [`c/elliptic-curve`](c/elliptic-curve/).
 
-## Selected Topics in Cryptography (Cripto 2)
+## Development
 
-New section: [`STIC/`](STIC/README.md). First practice:
-[Elliptic Curve](STIC/01-elliptic-curve/README.md), with native C17 and
-WebAssembly builds. Compute quadratic residues and roots, enumerate rational points,
-export points to a text file, generate curves up to 2048 bits, and add or double
-points. The C implementation uses only its standard library; big integers are
-implemented manually with arrays.
-The original Rust practices remain in `crates/`.
+Requires GNU Make, a C17 compiler, Python 3, Node.js 22 and Emscripten 4.0.15.
+Rust stable is needed to build or test the Rust crates; wasm-pack is needed to
+regenerate their WebAssembly packages.
 
 ```bash
 bash scripts/setup-emsdk.sh
 source .tools/emsdk/emsdk_env.sh
-make c
-make test-c
-cd web
-npm ci
-npm run dev
+export PATH="$(dirname "$EMSDK_NODE"):$PATH"
+npm --prefix web ci
+make dev
 ```
 
-`npm run dev` and `npm run build` generate the new C module automatically;
-Emscripten must be active in the terminal. Rebuild after editing C sources
-with `npm run build:wasm`. CI and deployment generate and test this module
-before building the site. Generated C binaries and SDK files are ignored.
-
-Routes: `/stic`, `/stic/elliptic-curve`, `/es/stic`, and
-`/es/stic/elliptic-curve`.
-
-## Introductory practices
-
-### Steganography
-
-Hide secret messages inside images using least-significant-bit (LSB) encoding. Upload a PNG, embed a message into the pixel data, and extract it back — changes invisible to the naked eye.
-
-```rust
-// crates/stego/src/lib.rs
-#[wasm_bindgen]
-pub fn greet() -> String {
-    "Hello from stego!".into()
-}
-```
-
-More practices coming as the project grows.
-
----
-
-## How It Works
-
-```
-Rust crate (crates/stego/)
-    │
-    ├─► wasm-pack build --target web
-    │       │
-    │       └─► pkg/
-    │            ├── stego_bg.wasm    WebAssembly binary
-    │            ├── stego.js         JS bindings
-    │            └── stego.d.ts       TypeScript types
-    │
-    └─► Astro frontend (web/)
-            │
-            └─► Imports WASM module
-                Runs in the browser
-                No server required
-```
-
-Rust handles the heavy computation. `wasm-bindgen` generates the JS glue. The Astro frontend imports the WASM module and provides the UI — everything executes client-side.
-
----
-
-## Project Structure
-
-```
-crypto/
-├── Cargo.toml              Workspace root
-├── crates/
-│   └── stego/              Steganography — LSB image encoding
-│       ├── Cargo.toml      cdylib + rlib, wasm-bindgen
-│       └── src/lib.rs
-└── web/                    Astro landing + practice UIs
-    ├── src/
-    │   ├── components/     Header, Hero, Footer, PracticeCard
-    │   ├── layouts/        Base layout
-    │   └── pages/          Routes
-    └── public/             Static assets
-```
-
----
-
-## Development
-
-### Prerequisites
-
-- [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) 4.0.15, GNU Make, and a C17 compiler (for STIC)
-- [Rust](https://rustup.rs/) (stable, for the introductory crates)
-- [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/)
-- [Node.js](https://nodejs.org/) (v18+)
-
-### Build & Run
+`make dev` and `make build` compile the C module to WebAssembly automatically.
+During development, run `make wasm` after editing C sources, then reload the page.
+Generated C binaries, WebAssembly output and SDK files are ignored.
 
 ```bash
-# Build the Rust crate
-cargo build
-
-# Compile to WASM
-wasm-pack build crates/stego --target web
-
-# Install frontend dependencies
-cd web && npm install
-
-# Start dev server
-npm run dev
+make c       # native C executable
+make test-c  # native arithmetic tests and C/WebAssembly parity
+make test    # C/WebAssembly tests and Rust workspace tests
+make build   # production site in web/dist/
 ```
 
-### Test
+The C build and tests use only `c/elliptic-curve/`, `scripts/` and `web/`; they do
+not read reports or screenshots. Local reports can still be compiled separately
+with `make -C STIC/01-elliptic-curve report` when that directory is present.
 
-```bash
-cargo test --workspace
-```
+## Routes and deployment
 
----
+Elliptic Curve is available at `/practices/elliptic-curve` and
+`/es/practices/elliptic-curve`. Previous `/stic` catalog and practice URLs redirect
+to the corresponding shared routes through `web/public/_redirects`.
+
+Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
+The deploy workflow publishes `web/dist/` to the Cloudflare Pages project
+`crypto-web`.
 
 ## Stack
 
 | Layer | Technology |
-|-------|-----------|
+|-------|------------|
 | Algorithms | Rust / C17 |
 | WASM bindings | wasm-bindgen / Emscripten |
-| Frontend | Astro, GSAP, Lenis |
+| Frontend | Astro, React, GSAP, Lenis |
 | Hosting | Cloudflare Pages |
-
----
 
 ## License
 

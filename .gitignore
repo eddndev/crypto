@@ -21,8 +21,14 @@ pkg/
 .env
 .env.*
 
-# C / Emscripten and LaTeX auxiliaries (keep final PDFs)
+# C / Emscripten
 .tools/
 web/public/wasm/elliptic-curve/
-STIC/*/build/*
-!STIC/*/build/*.pdf
+
+# Local coursework and report utilities
+/STIC/
+/scripts/capture-complete.cjs
+/scripts/capture-evidence.cjs
+/scripts/capture-progress.cjs
+/scripts/generate-lab-curves.py
+/scripts/lab-results.py
