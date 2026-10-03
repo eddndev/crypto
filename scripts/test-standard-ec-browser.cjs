@@ -106,8 +106,13 @@ const captures = process.env.EC_CAPTURE_DIR || path.resolve(root,'../04-ecdsa-ec
     await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
     await page.locator('#standard-ec-output').waitFor();
     const agreement=await page.locator('#standard-ec-output').innerText();
+    assert.match(agreement,/KDF = HKDF-SHA256/);
+    await save('salt.bin',path.join(temp,'shared-salt.bin'));
+    await save('key.bin',path.join(temp,'derived-key.bin'));
+    assert.equal((await fs.readFile(path.join(temp,'shared-salt.bin'))).length,32);
+    assert.equal((await fs.readFile(path.join(temp,'derived-key.bin'))).length,32);
     assert.equal(agreement.trim(),execFileSync(native,['derive',path.join(temp,'reuse-private.pem'),
-      path.join(temp,'peer-public.pem')],{encoding:'utf8'}).trim());
+      path.join(temp,'peer-public.pem'),path.join(temp,'shared-salt.bin')],{encoding:'utf8'}).trim());
     execFileSync(native,['keygen','P-384',path.join(temp,'wrong-private.pem'),path.join(temp,'wrong-public.pem')]);
     await page.getByLabel('Clave pública de la otra persona (.pem)',{exact:true}).setInputFiles(path.join(temp,'wrong-public.pem'));
     await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
@@ -120,9 +125,17 @@ const captures = process.env.EC_CAPTURE_DIR || path.resolve(root,'../04-ecdsa-ec
     await page.getByLabel('Qué deseas hacer').selectOption('derive');
     await page.getByLabel('Tu clave privada (.pem)',{exact:true}).setInputFiles(path.join(temp,'peer-private.pem'));
     await page.getByLabel('Clave pública de la otra persona (.pem)',{exact:true}).setInputFiles(path.join(temp,'reuse-public.pem'));
+    await page.getByLabel('Sal compartida (.bin, opcional)',{exact:true}).setInputFiles(path.join(temp,'shared-salt.bin'));
     await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
     await page.locator('#standard-ec-output').waitFor();
     assert.equal((await page.locator('#standard-ec-output').innerText()).trim(),agreement.trim());
+    const peerKeyDownload=page.waitForEvent('download');
+    await page.getByRole('button',{name:'Descargar key.bin',exact:true}).click();
+    await (await peerKeyDownload).saveAs(path.join(temp,'peer-derived-key.bin'));
+    assert.deepEqual(await fs.readFile(path.join(temp,'peer-derived-key.bin')),await fs.readFile(path.join(temp,'derived-key.bin')));
+    await page.getByLabel('Sal compartida (.bin, opcional)',{exact:true}).setInputFiles({name:'bad.bin',mimeType:'application/octet-stream',buffer:Buffer.alloc(31)});
+    await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
+    await page.getByRole('alert').filter({hasText:'32 bytes'}).waitFor();
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.locator('#standard-ec-workspace').screenshot({path:path.join(captures,'mobile.png')});
@@ -130,6 +143,6 @@ const captures = process.env.EC_CAPTURE_DIR || path.resolve(root,'../04-ecdsa-ec
     await page.getByRole('button',{name:'Generate keys',exact:true}).click();
     await page.locator('#standard-ec-output').waitFor();
     assert.deepEqual(errors,[]);
-    console.log('PASS: real browser key downloads, binary file signing, native verification, tampering, all ECDH curves, drag-and-drop, reusable keys/signatures, exports, ECDH with imported keys, size/curve errors, mobile layout and English route.');
+    console.log('PASS: real browser key downloads, binary file signing, native verification, tampering, all ECDH curves, drag-and-drop, reusable keys/signatures, exports, ECDH/HKDF with imported keys and shared salts, size/curve/salt errors, mobile layout and English route.');
   } finally {await browser.close();await fs.rm(temp,{recursive:true,force:true});}
 })().catch(error=>{console.error(error);process.exit(1)});

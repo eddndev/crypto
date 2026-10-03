@@ -47,11 +47,27 @@ try {
     const key=Buffer.from(hkdfSync('sha256',Buffer.from(result['Z_A (x)'],'base64'),
       Buffer.from(result.Salt,'base64'),Buffer.from(result.Info),32));
     assert.equal(key.toString('base64'),result['k_A (256 bits)']);
-    for (const name of ['private.pem','public.pem','signature.txt','native-signature.txt','alice.pem','bob.pem']) {
+    const peerPrivate=join(root,curve+'-peer-private.pem');
+    const peerPublic=join(root,curve+'-peer-public.pem');
+    execFileSync(native,['keygen',curve,peerPrivate,peerPublic]);
+    module.FS.writeFile('peer-private.pem',await readFile(peerPrivate));
+    module.FS.writeFile('peer-public.pem',await readFile(peerPublic));
+    const imported=fields(run('derive private.pem peer-public.pem'));
+    const salt=Buffer.from(imported.Salt,'base64');
+    module.FS.writeFile('salt.bin',salt);
+    await writeFile(join(root,'salt.bin'),salt);
+    assert.deepEqual(fields(run('derive peer-private.pem public.pem salt.bin')),imported);
+    assert.deepEqual(fields(execFileSync(native,['derive',join(root,'private.pem'),peerPublic,
+      join(root,'salt.bin')],{encoding:'utf8'})),imported);
+    assert.equal(Buffer.from(hkdfSync('sha256',Buffer.from(imported['Z (x)'],'base64'),
+      salt,Buffer.from(imported.Info),32)).toString('base64'),imported['k (256 bits)']);
+    module.FS.writeFile('salt.bin',new Uint8Array(31));
+    run('derive private.pem peer-public.pem salt.bin',1);
+    for (const name of ['private.pem','public.pem','signature.txt','native-signature.txt','alice.pem','bob.pem','peer-private.pem','peer-public.pem','salt.bin']) {
       module.FS.unlink(name);
     }
     await rm(join(root,'native-signature.txt'));
-    console.log(`PASS: ${curve}, OpenSSL native/WASM signatures in both directions, tampering and independent HKDF.`);
+    console.log(`PASS: ${curve}, native/WASM ECDSA and both ECDH flows, tampering and shared-salt HKDF.`);
   }
   run('parameters P-192',1);
   run('keygen P-256 same.pem same.pem',1);

@@ -38,6 +38,8 @@ To derive with independently stored keys:
 
 ```sh
 c/standard-ec/build/standard-ec derive private.pem peer-public.pem
+# Reuse the other party's 32-byte binary salt:
+c/standard-ec/build/standard-ec derive private.pem peer-public.pem salt.bin
 ```
 
 ## Browser and verification
@@ -53,7 +55,10 @@ filenames and sizes, and lets users download generated keys, signatures and
 text results. Generated keys can be reused for signing, and a new signature can
 be reused for verification without downloading and importing it first.
 “ECDH with files” runs the existing `derive` command with a private PEM and a
-peer public PEM; it displays K and Z, while the simulation also demonstrates HKDF.
+peer public PEM; it displays K, Z and a 256-bit HKDF-SHA-256 key. Without a salt
+file, it generates a random 32-byte salt. The other party must load that same binary salt file to
+derive the same key. The web interface exports `salt.bin` and `key.bin`; the salt
+is public, while the key is secret. The HKDF context is `STIC-Lab04-ECDH-v1`.
 
 Files are processed inside a dedicated browser worker and a virtual filesystem.
 No keys or messages are uploaded. The browser caps messages at 16 MiB; native

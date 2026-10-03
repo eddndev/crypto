@@ -105,7 +105,15 @@ class StandardEcTests(unittest.TestCase):
         for curve,_,_,_ in CURVES:
             a,ap=self.keys(curve,curve+'a');b,bp=self.keys(curve,curve+'b')
             result=fields(run('derive',a,bp))
-            self.assertEqual(result,fields(run('derive',b,ap)))
+            salt=self.root/'salt.bin';salt.write_bytes(base64.b64decode(result['Salt']))
+            self.assertEqual(result,fields(run('derive',b,ap,salt)))
+            prk=hmac.digest(salt.read_bytes(),base64.b64decode(result['Z (x)']),'sha256')
+            expected=hmac.digest(prk,result['Info'].encode()+b'\x01','sha256')
+            self.assertEqual(base64.b64decode(result['k (256 bits)']),expected)
+            self.assertEqual(len(expected),32)
+            for bad in [b'',b'X'*31,b'X'*33]:
+                salt.write_bytes(bad);run('derive',a,bp,salt,code=1)
+            run('derive',a,bp,self.root/'missing-salt.bin',code=1)
             z=subprocess.check_output(['openssl','pkeyutl','-derive','-inkey',str(a),
                                        '-peerkey',str(bp)])
             self.assertEqual(base64.b64decode(result['Z (x)']),z)

@@ -14,6 +14,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
   const [curve, setCurve] = useState('P-256');
   const [privateFile, setPrivateFile] = useState<File | null>(null);
   const [publicFile, setPublicFile] = useState<File | null>(null);
+  const [saltFile, setSaltFile] = useState<File | null>(null);
   const [peerFile, setPeerFile] = useState<File | null>(null);
   const [messageFile, setMessageFile] = useState<File | null>(null);
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
@@ -69,6 +70,11 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
           command = 'verify public.pem message.bin signature.txt';
         } else if (mode === 'derive') {
           command = 'derive private.pem peer.pem';
+          if (saltFile) {
+            if (saltFile.size !== 32) throw new Error(t('La sal compartida debe contener exactamente 32 bytes.', 'The shared salt must contain exactly 32 bytes.'));
+            inputs.push({ name: 'salt.bin', bytes: await saltFile.arrayBuffer() });
+            command += ' salt.bin';
+          }
         } else {
           if (!aliceName.trim() || !bobName.trim() || aliceName === bobName) {
             throw new Error(t('Elige dos nombres de archivo diferentes.', 'Choose two different filenames.'));
@@ -80,6 +86,13 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       const job = new Worker('/workers/standard-ec.js', { type: 'module' });
       worker.current = job;
       job.onmessage = ({ data }: MessageEvent<Reply>) => {
+        if (data.code === 0 && mode === 'derive') {
+          const values = Object.fromEntries(data.output.split('\n').filter(line => line.includes(' = ')).map(line => line.split(' = ')));
+          const salt = Uint8Array.from(atob(values.Salt), character => character.charCodeAt(0));
+          const key = Uint8Array.from(atob(values['k (256 bits)']), character => character.charCodeAt(0));
+          data.files = [{ name: 'salt.bin', bytes: salt }, { name: 'key.bin', bytes: key }];
+          setSaltFile(new File([new Uint8Array(salt).buffer], 'salt.bin', { type: 'application/octet-stream' }));
+        }
         setReply(data);
         if (data.code === 0) {
           const asFile = (file: ResultFile, name: string) => new File([new Uint8Array(file.bytes).buffer], name, { type: 'text/plain' });
@@ -112,10 +125,10 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
   }
   const outputNames: Record<string, string> = {
     'private.pem': privateName, 'public.pem': publicName, 'signature.txt': signatureName,
-    'alice.pem': aliceName, 'bob.pem': bobName,
+    'alice.pem': aliceName, 'bob.pem': bobName, 'salt.bin': 'salt.bin', 'key.bin': 'key.bin',
   };
   function download(file: ResultFile) {
-    saveBytes(file.bytes, outputNames[file.name] || file.name);
+    saveBytes(file.bytes, outputNames[file.name] || file.name, file.name.endsWith('.bin') ? 'application/octet-stream' : 'text/plain');
   }
   async function downloadSelected(file: File) {
     try { saveBytes(new Uint8Array(await file.arrayBuffer()), file.name, file.type || 'application/octet-stream'); }
@@ -150,7 +163,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
         }}>
         <p className="text-sm text-text-secondary">{t('Arrastra un archivo aquí o selecciónalo.', 'Drop a file here or select it.')}</p>
         <input id={id} aria-label={label} className="sr-only"
-          type="file" accept={message ? undefined : id === 'signature-upload' ? '.txt' : '.pem,.txt'}
+          type="file" accept={message ? undefined : id === 'salt-upload' ? '.bin' : id === 'signature-upload' ? '.txt' : '.pem,.txt'}
           onChange={event => { chooseFile(event.target.files?.[0] ?? null, update, message); event.target.value = ''; }} />
         <label htmlFor={id} className="inline-block cursor-pointer bg-accent text-black px-3 py-2 text-sm font-semibold">
           {t('Elegir archivo', 'Choose file')}
@@ -158,7 +171,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
         {file && <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm break-all min-w-0" role="status">{t('Archivo listo:', 'Ready file:')} {file.name} · {file.size.toLocaleString()} bytes</p>
           <button type="button" className="text-sm text-accent underline cursor-pointer" onClick={() => downloadSelected(file)}>
-            {t('Descargar', 'Download')} {file.name}
+            {id === 'salt-upload' ? t('Guardar sal cargada', 'Save loaded salt') : t('Descargar', 'Download') + ' ' + file.name}
           </button>
           <button type="button" className="text-sm text-accent underline cursor-pointer" onClick={() => chooseFile(null, update, message)}>
             {t('Quitar', 'Remove')}
@@ -203,9 +216,10 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
         {upload('signature-upload', t('Firma (r, s) (.txt)', 'Signature (r, s) (.txt)'), signatureFile, setSignatureFile)}
       </>}
       {mode === 'derive' && <>
-        <p className="text-text-secondary">{t('Selecciona tu clave privada y la clave pública de la otra persona. Ambas deben usar la misma curva. Se obtiene el punto compartido K y su coordenada Z; puedes guardar el resultado y compararlo con el de la otra persona.', 'Select your private key and the other person’s public key. Both must use the same curve. This computes the shared point K and its coordinate Z; save the result to compare it with the other person’s.')}</p>
+        <p className="text-text-secondary">{t('Selecciona tu clave privada y la clave pública de la otra persona. Ambas deben usar la misma curva. Se obtiene K y se deriva una clave de 256 bits con HKDF-SHA-256. Comparte la sal con la otra persona para obtener la misma clave. Si no cargas una sal, se genera una nueva.', 'Select your private key and the other person’s public key. Both must use the same curve. This computes K and derives a 256-bit key with HKDF-SHA-256. Share the salt with the other person to obtain the same key. If you do not provide a salt, a new one is generated.')}</p>
         {upload('private-upload', t('Tu clave privada (.pem)', 'Your private key (.pem)'), privateFile, setPrivateFile)}
         {upload('peer-upload', t('Clave pública de la otra persona (.pem)', 'Peer public key (.pem)'), peerFile, setPeerFile)}
+        {upload('salt-upload', t('Sal compartida (.bin, opcional)', 'Shared salt (.bin, optional)'), saltFile, setSaltFile)}
       </>}
       {mode === 'ecdh' && <>
         <p className="text-text-secondary">{t('Alice y Bob generan claves nuevas y calculan el mismo punto K = abG. La simulación muestra K, su coordenada x y la clave derivada para comparar los resultados.', 'Alice and Bob generate fresh keys and compute the same point K = abG. The simulation shows K, its x-coordinate and the derived key so you can compare their results.')}</p>

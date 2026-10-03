@@ -500,23 +500,47 @@ static int exchange(const CurveSpec *spec, const char *alice_file, const char *b
     return failed;
 }
 
-static int derive_files(const char *private_file, const char *peer_file) {
+static int read_salt(const char *filename, unsigned char salt[32]) {
+    if (!filename) {
+        return RAND_bytes(salt, 32) != 1;
+    }
+    FILE *file = fopen(filename, "rb");
+    if (!file) {
+        return 1;
+    }
+    int failed = fread(salt, 1, 32, file) != 32 || fgetc(file) != EOF || ferror(file);
+    if (fclose(file)) {
+        failed = 1;
+    }
+    return failed;
+}
+
+static int derive_files(const char *private_file, const char *peer_file, const char *salt_file) {
     EVP_PKEY *own = read_key(private_file, 1);
     EVP_PKEY *peer = read_key(peer_file, 0);
     const CurveSpec *own_spec = NULL;
     const CurveSpec *peer_spec = NULL;
     unsigned char secret[66] = {0};
     unsigned char point[MAX_POINT_BYTES];
+    unsigned char salt[32] = {0};
+    unsigned char key[32] = {0};
     size_t length = sizeof(secret);
     size_t point_length = sizeof(point);
     int failed = validate_key(own, 1, &own_spec) || validate_key(peer, 0, &peer_spec) ||
-                 own_spec != peer_spec;
+                 own_spec != peer_spec || read_salt(salt_file, salt);
     if (!failed) {
         failed = derive_secret(own, peer, secret, &length) ||
                  shared_point(own_spec, own, peer, point, &point_length) ||
-                 print_base64("K (SEC1)", point, point_length) ||
-                 print_base64("Z (x)", secret, length);
+                 hkdf(secret, length, salt, key);
     }
+    if (!failed) {
+        printf("Curve = %s\nKDF = HKDF-SHA256\nInfo = STIC-Lab04-ECDH-v1\n", own_spec->name);
+        failed = print_base64("K (SEC1)", point, point_length) ||
+                 print_base64("Z (x)", secret, length) ||
+                 print_base64("Salt", salt, sizeof(salt)) ||
+                 print_base64("k (256 bits)", key, sizeof(key));
+    }
+    OPENSSL_cleanse(key, sizeof(key));
     OPENSSL_cleanse(secret, sizeof(secret));
     OPENSSL_cleanse(point, sizeof(point));
     EVP_PKEY_free(own);
@@ -579,8 +603,8 @@ int standard_ec_cli(int argc, char **argv) {
         status = sign_file(argv[2], argv[3], argv[4]);
     } else if (argc == 5 && !strcmp(argv[1], "verify")) {
         status = verify_file(argv[2], argv[3], argv[4]);
-    } else if (argc == 4 && !strcmp(argv[1], "derive")) {
-        status = derive_files(argv[2], argv[3]);
+    } else if ((argc == 4 || argc == 5) && !strcmp(argv[1], "derive")) {
+        status = derive_files(argv[2], argv[3], argc == 5 ? argv[4] : NULL);
     } else if (argc == 5 && !strcmp(argv[1], "ecdh") && spec) {
         status = exchange(spec, argv[3], argv[4]);
     } else {
@@ -588,7 +612,7 @@ int standard_ec_cli(int argc, char **argv) {
               "  standard-ec keygen P-256 private.pem public.pem\n"
               "  standard-ec sign private.pem message.bin signature.txt\n"
               "  standard-ec verify public.pem message.bin signature.txt\n"
-              "  standard-ec derive private.pem peer.pem\n"
+              "  standard-ec derive private.pem peer.pem [salt.bin]\n"
               "  standard-ec ecdh P-256 alice.pem bob.pem\n", stderr);
     }
     if (status == 1) {
