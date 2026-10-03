@@ -48,6 +48,13 @@ Emscripten's `getentropy` connects OpenSSL's seed source to browser Web Crypto
 (or the Node.js CSPRNG during tests). The browser adapter also adds 48 fresh
 Web Crypto bytes; it does not use a 32-bit seed or `rand()`.
 
+The web interface accepts file selection and drag-and-drop, displays selected
+filenames and sizes, and lets users download generated keys, signatures and
+text results. Generated keys can be reused for signing, and a new signature can
+be reused for verification without downloading and importing it first.
+“ECDH with files” runs the existing `derive` command with a private PEM and a
+peer public PEM; it displays K and Z, while the simulation also demonstrates HKDF.
+
 Files are processed inside a dedicated browser worker and a virtual filesystem.
 No keys or messages are uploaded. The browser caps messages at 16 MiB; native
 signing/verification streams the file in 8192-byte blocks. Filenames chosen in

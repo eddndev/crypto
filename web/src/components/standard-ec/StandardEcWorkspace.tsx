@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-type Mode = 'keygen' | 'sign' | 'verify' | 'ecdh';
+type Mode = 'keygen' | 'sign' | 'verify' | 'ecdh' | 'derive';
 type ResultFile = { name: string; bytes: Uint8Array };
 type Reply = { code: number; output: string; error: string; files: ResultFile[] };
 const inputStyle = 'block w-full mt-2 min-w-0 border border-border bg-bg-primary p-3 font-mono text-sm focus:outline-accent';
@@ -32,10 +32,13 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
     sign: t('Firmar archivo', 'Sign file'),
     verify: t('Verificar firma', 'Verify signature'),
     ecdh: t('Simular ECDH', 'Simulate ECDH'),
+    derive: t('ECDH con archivos', 'ECDH with files'),
   };
 
   async function run(parameters = false) {
+    if (busy) return;
     clear();
+    setBusy(true);
     const inputs: { name: string; bytes: ArrayBuffer }[] = [];
     let command = `parameters ${curve}`;
     let outputs: string[] = [];
@@ -43,6 +46,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       if (!parameters) {
         const selected = mode === 'sign' ? [[privateFile, 'private.pem'], [messageFile, 'message.bin']]
           : mode === 'verify' ? [[publicFile, 'public.pem'], [messageFile, 'message.bin'], [signatureFile, 'signature.txt']]
+          : mode === 'derive' ? [[privateFile, 'private.pem'], [publicFile, 'peer.pem']]
           : [];
         for (const [file, name] of selected as [File | null, string][]) {
           if (!file) throw new Error(t('Selecciona todos los archivos de esta operación.', 'Select all files for this operation.'));
@@ -62,6 +66,8 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
           command = 'sign private.pem message.bin signature.txt'; outputs = ['signature.txt'];
         } else if (mode === 'verify') {
           command = 'verify public.pem message.bin signature.txt';
+        } else if (mode === 'derive') {
+          command = 'derive private.pem peer.pem';
         } else {
           if (!aliceName.trim() || !bobName.trim() || aliceName === bobName) {
             throw new Error(t('Elige dos nombres de archivo diferentes.', 'Choose two different filenames.'));
@@ -74,6 +80,15 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       worker.current = job;
       job.onmessage = ({ data }: MessageEvent<Reply>) => {
         setReply(data);
+        if (data.code === 0) {
+          const asFile = (file: ResultFile, name: string) => new File([new Uint8Array(file.bytes).buffer], name, { type: 'text/plain' });
+          const generatedPrivate = data.files.find(file => file.name === 'private.pem');
+          const generatedPublic = data.files.find(file => file.name === 'public.pem');
+          const generatedSignature = data.files.find(file => file.name === 'signature.txt');
+          if (generatedPrivate) setPrivateFile(asFile(generatedPrivate, privateName));
+          if (generatedPublic) setPublicFile(asFile(generatedPublic, publicName));
+          if (generatedSignature) setSignatureFile(asFile(generatedSignature, signatureName));
+        }
         if (data.code === 1) setError(data.error || t('No se pudo completar la operación.', 'Could not complete the operation.'));
         setBusy(false); job.terminate(); worker.current = null;
       };
@@ -88,30 +103,79 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
     }
   }
 
-  function download(file: ResultFile) {
-    const names: Record<string, string> = {
-      'private.pem': privateName, 'public.pem': publicName, 'signature.txt': signatureName,
-      'alice.pem': aliceName, 'bob.pem': bobName,
-    };
-    const copy = new Uint8Array(file.bytes);
-    const url = URL.createObjectURL(new Blob([copy.buffer], { type: 'text/plain' }));
+  function saveBytes(bytes: Uint8Array, name: string, type = 'text/plain') {
+    const url = URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer], { type }));
     const link = document.createElement('a');
-    link.href = url; link.download = names[file.name] || file.name; link.click();
+    link.href = url; link.download = name; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  function upload(label: string, update: (file: File | null) => void) {
-    return <label className="block">{label}<input className={inputStyle} type="file"
-      onChange={event => { update(event.target.files?.[0] ?? null); clear(); }} /></label>;
+  const outputNames: Record<string, string> = {
+    'private.pem': privateName, 'public.pem': publicName, 'signature.txt': signatureName,
+    'alice.pem': aliceName, 'bob.pem': bobName,
+  };
+  function download(file: ResultFile) {
+    saveBytes(file.bytes, outputNames[file.name] || file.name);
+  }
+  async function downloadSelected(file: File) {
+    try { saveBytes(new Uint8Array(await file.arrayBuffer()), file.name, file.type || 'application/octet-stream'); }
+    catch { setError(t('No se pudo leer el archivo para descargarlo.', 'Could not read the file for download.')); }
+  }
+  function downloadResult() {
+    if (!reply) return;
+    saveBytes(new TextEncoder().encode(reply.output + '\n'), 'result.txt');
+  }
+  function chooseFile(file: File | null, update: (file: File | null) => void, message = false) {
+    clear();
+    if (file && file.size > (message ? 16 * 1024 * 1024 : 16384)) {
+      setError(message
+        ? t('El archivo admite hasta 16 MiB.', 'The file supports up to 16 MiB.')
+        : t('Las claves y firmas admiten hasta 16 KiB.', 'Keys and signatures support up to 16 KiB.'));
+      update(null); return;
+    }
+    update(file);
+    if (update === setPrivateFile && file) setPublicFile(null);
+  }
+  function upload(id: string, label: string, file: File | null, update: (file: File | null) => void, message = false) {
+    return <div className="space-y-2 min-w-0">
+      <label htmlFor={id} className="block">{label}</label>
+      <div className="border border-dashed border-border bg-bg-primary p-4 space-y-3 min-w-0 focus-within:border-accent"
+        onDragOver={event => { event.preventDefault(); }}
+        onDrop={event => {
+          event.preventDefault(); if (busy) return;
+          if (event.dataTransfer.files.length !== 1) {
+            clear(); setError(t('Arrastra un solo archivo por campo.', 'Drop one file per field.')); return;
+          }
+          chooseFile(event.dataTransfer.files[0], update, message);
+        }}>
+        <p className="text-sm text-text-secondary">{t('Arrastra un archivo aquí o selecciónalo.', 'Drop a file here or select it.')}</p>
+        <input id={id} aria-label={label} className="sr-only"
+          type="file" accept={message ? undefined : id === 'signature-upload' ? '.txt' : '.pem,.txt'}
+          onChange={event => { chooseFile(event.target.files?.[0] ?? null, update, message); event.target.value = ''; }} />
+        <label htmlFor={id} className="inline-block cursor-pointer bg-accent text-black px-3 py-2 text-sm font-semibold">
+          {t('Elegir archivo', 'Choose file')}
+        </label>
+        {file && <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm break-all min-w-0" role="status">{t('Archivo listo:', 'Ready file:')} {file.name} · {file.size.toLocaleString()} bytes</p>
+          <button type="button" className="text-sm text-accent underline cursor-pointer" onClick={() => downloadSelected(file)}>
+            {t('Descargar', 'Download')} {file.name}
+          </button>
+          <button type="button" className="text-sm text-accent underline cursor-pointer" onClick={() => chooseFile(null, update, message)}>
+            {t('Quitar', 'Remove')}
+          </button>
+        </div>}
+      </div>
+    </div>;
   }
   function filename(label: string, value: string, update: (name: string) => void) {
     return <label className="block">{label}<input className={inputStyle} value={value}
       maxLength={120} onChange={event => { update(event.target.value); clear(); }} /></label>;
   }
   return <div className="space-y-6" id="standard-ec-workspace">
+    <p className="text-sm text-text-secondary">{t('Tus archivos se procesan en este navegador. Las claves generadas y la firma quedan disponibles durante esta sesión; descárgalas para conservarlas.', 'Your files are processed in this browser. Generated keys and signatures remain available during this session; download them to keep them.')}</p>
     <fieldset disabled={busy} className={panelStyle}>
       <legend className="px-2 text-xl font-bold">{t('Operación', 'Operation')}</legend>
       <label className="block">{t('Qué deseas hacer', 'Choose an operation')}
-        <select className={inputStyle} value={mode} onChange={event => { setMode(event.target.value as Mode); clear(); }}>
+        <select className={inputStyle} value={mode} onChange={event => { setMode(event.target.value as Mode); if (event.target.value === 'derive') setPublicFile(null); clear(); }}>
           {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
@@ -128,14 +192,19 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
         {filename(t('Nombre de la clave pública', 'Public key filename'), publicName, setPublicName)}
       </div>}
       {mode === 'sign' && <>
-        {upload(t('Clave privada (.pem)', 'Private key (.pem)'), setPrivateFile)}
-        {upload(t('Archivo que deseas firmar', 'File to sign'), setMessageFile)}
+        {upload('private-upload', t('Clave privada (.pem)', 'Private key (.pem)'), privateFile, setPrivateFile)}
+        {upload('message-upload', t('Archivo que deseas firmar', 'File to sign'), messageFile, setMessageFile, true)}
         {filename(t('Nombre del archivo de firma', 'Signature filename'), signatureName, setSignatureName)}
       </>}
       {mode === 'verify' && <>
-        {upload(t('Clave pública (.pem)', 'Public key (.pem)'), setPublicFile)}
-        {upload(t('Archivo que deseas verificar', 'File to verify'), setMessageFile)}
-        {upload(t('Firma (r, s) (.txt)', 'Signature (r, s) (.txt)'), setSignatureFile)}
+        {upload('public-upload', t('Clave pública (.pem)', 'Public key (.pem)'), publicFile, setPublicFile)}
+        {upload('message-upload', t('Archivo que deseas verificar', 'File to verify'), messageFile, setMessageFile, true)}
+        {upload('signature-upload', t('Firma (r, s) (.txt)', 'Signature (r, s) (.txt)'), signatureFile, setSignatureFile)}
+      </>}
+      {mode === 'derive' && <>
+        <p className="text-text-secondary">{t('Selecciona tu clave privada y la clave pública de la otra persona. Ambas deben usar la misma curva. Se obtiene el punto compartido K y su coordenada Z; puedes guardar el resultado y compararlo con el de la otra persona.', 'Select your private key and the other person’s public key. Both must use the same curve. This computes the shared point K and its coordinate Z; save the result to compare it with the other person’s.')}</p>
+        {upload('private-upload', t('Tu clave privada (.pem)', 'Your private key (.pem)'), privateFile, setPrivateFile)}
+        {upload('public-upload', t('Clave pública de la otra persona (.pem)', 'Peer public key (.pem)'), publicFile, setPublicFile)}
       </>}
       {mode === 'ecdh' && <>
         <p className="text-text-secondary">{t('Alice y Bob generan claves nuevas y calculan el mismo punto K = abG. La simulación muestra K, su coordenada x y la clave derivada para comparar los resultados.', 'Alice and Bob generate fresh keys and compute the same point K = abG. The simulation shows K, its x-coordinate and the derived key so you can compare their results.')}</p>
@@ -155,7 +224,14 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       </p>}
       <pre className="text-sm leading-relaxed whitespace-pre-wrap break-all font-mono" id="standard-ec-output">{reply.output}</pre>
       <div className="flex flex-wrap gap-3">{reply.files.map(file => <button key={file.name}
-        className={buttonStyle} onClick={() => download(file)}>{t('Descargar', 'Download')} {({ 'private.pem': privateName, 'public.pem': publicName, 'signature.txt': signatureName, 'alice.pem': aliceName, 'bob.pem': bobName } as Record<string,string>)[file.name]}</button>)}</div>
+        className={buttonStyle} onClick={() => download(file)}>{t('Descargar', 'Download')} {outputNames[file.name]}</button>)}</div>
+      <div className="flex flex-wrap gap-3">
+        <button className={buttonStyle} onClick={downloadResult}>{t('Descargar resultado (.txt)', 'Download result (.txt)')}</button>
+        {mode === 'keygen' && reply.files.some(file => file.name === 'private.pem') && <button className={buttonStyle}
+          onClick={() => { setMode('sign'); clear(); }}>{t('Firmar con estas claves', 'Sign with these keys')}</button>}
+        {mode === 'sign' && reply.files.some(file => file.name === 'signature.txt') && <button className={buttonStyle}
+          onClick={() => { setMode('verify'); clear(); }}>{t('Verificar esta firma', 'Verify this signature')}</button>}
+      </div>
     </section>}
   </div>;
 }
