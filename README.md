@@ -14,6 +14,7 @@ All practices share one catalog at `/practices` (English) and `/es/practices`
 6. Elliptic Curve
 7. Toy ECDH
 8. Toy ECDSA
+9. ECDSA & ECDH with OpenSSL
 
 Elliptic Curve computes quadratic residues and roots, enumerates rational points,
 exports points to a text file, generates curves up to 2048 bits, and adds or
@@ -46,6 +47,9 @@ ignored. The public C implementations live in [`c/`](c/).
 ## Development
 
 Requires GNU Make, a C17 compiler, Python 3, Node.js 22 and Emscripten 4.0.15.
+The standard-curve practice also requires OpenSSL 3 development headers,
+`pkg-config`, Perl (including Time::Piece), curl and tar. Its browser build
+compiles the pinned OpenSSL 3.5.8 release and verifies its SHA-256 digest.
 Rust stable is needed to build or test the Rust crates; wasm-pack is needed to
 regenerate their WebAssembly packages.
 
@@ -88,6 +92,11 @@ Toy ECDSA is available at `/practices/toy-ecdsa` and `/es/practices/toy-ecdsa`.
 It generates keys, signs integers, verifies signatures, simulates Alice/Bob,
 and recovers small private scalars with baby-step giant-step. See
 [`c/toy_ecdsa/README.md`](c/toy_ecdsa/README.md) for parameters and commands.
+
+Standard ECDSA/ECDH is available at `/practices/standard-ec` and
+`/es/practices/standard-ec`. It uses OpenSSL in C17 for file signatures,
+P-224/P-256/P-384/P-521, PEM keys, ECDH and HKDF-SHA-256.
+See [`c/standard-ec/README.md`](c/standard-ec/README.md).
 
 Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
 The deploy workflow publishes `web/dist/` to the Cloudflare Pages project

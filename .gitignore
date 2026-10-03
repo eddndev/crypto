@@ -35,3 +35,5 @@ web/public/wasm/toy-ecdsa/
 /scripts/capture-progress.cjs
 /scripts/generate-lab-curves.py
 /scripts/lab-results.py
+
+web/public/wasm/standard-ec/

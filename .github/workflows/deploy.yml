@@ -14,6 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check OpenSSL development dependencies
+        run: |
+          if ! pkg-config --atleast-version=3.0 openssl; then
+            sudo apt-get update
+            sudo apt-get install -y pkg-config libssl-dev perl
+          fi
+      - name: Cache OpenSSL WebAssembly library
+        uses: actions/cache@v4
+        with:
+          path: .tools/openssl-wasm-3.5.8
+          key: openssl-wasm-${{ runner.os }}-${{ runner.arch }}-emsdk-4.0.15-${{ hashFiles('scripts/setup-openssl-wasm.sh') }}
       - name: Set up C to WebAssembly compiler
         run: bash ../scripts/setup-emsdk.sh
 

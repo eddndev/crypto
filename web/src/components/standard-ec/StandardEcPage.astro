@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import StandardEcWorkspace from './StandardEcWorkspace';
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const description = es
+  ? 'Firma archivos con ECDSA y simula un acuerdo ECDH con curvas NIST. OpenSSL realiza los cálculos en tu navegador, con SHA-2 y HKDF-SHA-256.'
+  : 'Sign files with ECDSA and simulate ECDH using NIST curves. OpenSSL runs in your browser, with SHA-2 and HKDF-SHA-256.';
+---
+<Base title="ECDSA & ECDH — OpenSSL" description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={es ? '/es/practices' : '/practices'} class="inline-flex gap-2 font-mono text-sm text-text-secondary hover:text-accent mb-8">
+      ← {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-sm text-accent uppercase tracking-widest mb-3">{es ? 'Práctica' : 'Practice'} 09 · OpenSSL</span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-tight uppercase mb-4">ECDSA &amp; ECDH</h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[760px] mb-10">{description}</p>
+    <StandardEcWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>
