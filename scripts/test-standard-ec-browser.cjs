@@ -100,8 +100,8 @@ const captures = process.env.EC_CAPTURE_DIR || path.resolve(root,'../04-ecdsa-ec
     // Independently stored ECDH keys must agree with native OpenSSL.
     execFileSync(native,['keygen','P-256',path.join(temp,'peer-private.pem'),path.join(temp,'peer-public.pem')]);
     await page.getByLabel('Qué deseas hacer').selectOption('derive');
-    assert.doesNotMatch(await page.locator('#public-upload').locator('..').innerText(),/Archivo listo:/);
-    await page.getByLabel('Tu clave privada (.pem)',{exact:true}).setInputFiles(path.join(temp,'reuse-private.pem'));
+    assert.doesNotMatch(await page.locator('#peer-upload').locator('..').innerText(),/Archivo listo:/);
+    assert.match(await page.locator('#private-upload').locator('..').innerText(),/Mi privada.pem/);
     await page.getByLabel('Clave pública de la otra persona (.pem)',{exact:true}).setInputFiles(path.join(temp,'peer-public.pem'));
     await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
     await page.locator('#standard-ec-output').waitFor();
@@ -113,6 +113,16 @@ const captures = process.env.EC_CAPTURE_DIR || path.resolve(root,'../04-ecdsa-ec
     await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
     await page.getByRole('alert').waitFor();
     assert.equal(await page.locator('#standard-ec-output').count(),0);
+    await page.getByLabel('Qué deseas hacer').selectOption('verify');
+    assert.match(await page.locator('#public-upload').locator('..').innerText(),/Mi pública.pem/);
+    await page.getByRole('button',{name:'Verificar firma',exact:true}).click();
+    await page.getByText('Firma válida',{exact:true}).waitFor();
+    await page.getByLabel('Qué deseas hacer').selectOption('derive');
+    await page.getByLabel('Tu clave privada (.pem)',{exact:true}).setInputFiles(path.join(temp,'peer-private.pem'));
+    await page.getByLabel('Clave pública de la otra persona (.pem)',{exact:true}).setInputFiles(path.join(temp,'reuse-public.pem'));
+    await page.getByRole('button',{name:'ECDH con archivos',exact:true}).click();
+    await page.locator('#standard-ec-output').waitFor();
+    assert.equal((await page.locator('#standard-ec-output').innerText()).trim(),agreement.trim());
     await page.setViewportSize({width:390,height:844});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
     await page.locator('#standard-ec-workspace').screenshot({path:path.join(captures,'mobile.png')});

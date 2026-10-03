@@ -14,6 +14,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
   const [curve, setCurve] = useState('P-256');
   const [privateFile, setPrivateFile] = useState<File | null>(null);
   const [publicFile, setPublicFile] = useState<File | null>(null);
+  const [peerFile, setPeerFile] = useState<File | null>(null);
   const [messageFile, setMessageFile] = useState<File | null>(null);
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
   const [privateName, setPrivateName] = useState('private.pem');
@@ -46,7 +47,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       if (!parameters) {
         const selected = mode === 'sign' ? [[privateFile, 'private.pem'], [messageFile, 'message.bin']]
           : mode === 'verify' ? [[publicFile, 'public.pem'], [messageFile, 'message.bin'], [signatureFile, 'signature.txt']]
-          : mode === 'derive' ? [[privateFile, 'private.pem'], [publicFile, 'peer.pem']]
+          : mode === 'derive' ? [[privateFile, 'private.pem'], [peerFile, 'peer.pem']]
           : [];
         for (const [file, name] of selected as [File | null, string][]) {
           if (!file) throw new Error(t('Selecciona todos los archivos de esta operación.', 'Select all files for this operation.'));
@@ -175,7 +176,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
     <fieldset disabled={busy} className={panelStyle}>
       <legend className="px-2 text-xl font-bold">{t('Operación', 'Operation')}</legend>
       <label className="block">{t('Qué deseas hacer', 'Choose an operation')}
-        <select className={inputStyle} value={mode} onChange={event => { setMode(event.target.value as Mode); if (event.target.value === 'derive') setPublicFile(null); clear(); }}>
+        <select className={inputStyle} value={mode} onChange={event => { setMode(event.target.value as Mode); clear(); }}>
           {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
@@ -204,7 +205,7 @@ export default function StandardEcWorkspace({ lang }: { lang: 'en' | 'es' }) {
       {mode === 'derive' && <>
         <p className="text-text-secondary">{t('Selecciona tu clave privada y la clave pública de la otra persona. Ambas deben usar la misma curva. Se obtiene el punto compartido K y su coordenada Z; puedes guardar el resultado y compararlo con el de la otra persona.', 'Select your private key and the other person’s public key. Both must use the same curve. This computes the shared point K and its coordinate Z; save the result to compare it with the other person’s.')}</p>
         {upload('private-upload', t('Tu clave privada (.pem)', 'Your private key (.pem)'), privateFile, setPrivateFile)}
-        {upload('public-upload', t('Clave pública de la otra persona (.pem)', 'Peer public key (.pem)'), publicFile, setPublicFile)}
+        {upload('peer-upload', t('Clave pública de la otra persona (.pem)', 'Peer public key (.pem)'), peerFile, setPeerFile)}
       </>}
       {mode === 'ecdh' && <>
         <p className="text-text-secondary">{t('Alice y Bob generan claves nuevas y calculan el mismo punto K = abG. La simulación muestra K, su coordenada x y la clave derivada para comparar los resultados.', 'Alice and Bob generate fresh keys and compute the same point K = abG. The simulation shows K, its x-coordinate and the derived key so you can compare their results.')}</p>
