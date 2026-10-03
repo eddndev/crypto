@@ -5,8 +5,8 @@ REPO_ROOT ?= $(abspath ../..)
 EMCC ?= $(REPO_ROOT)/.tools/emsdk/upstream/emscripten/emcc
 CPPFLAGS += -Iinclude
 CFLAGS ?= -O2 -Wall -Wextra -Wpedantic -Werror
-SOURCES := src/bigint.c src/curve_arithmetic.c src/toy_ecdh.c src/cli.c
-HEADERS := $(wildcard include/*.h)
+SOURCES := ../handcrafted/src/bigint.c src/curve_arithmetic.c src/toy_ecdh.c src/cli.c
+HEADERS := $(wildcard include/*.h) ../handcrafted/src/bigint.c ../handcrafted/include/bigint.h
 WASM_DIR ?= $(REPO_ROOT)/web/public/wasm/toy-ecdh
 
 all: native

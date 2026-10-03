@@ -1,7 +1,8 @@
 #include "curve_arithmetic.h"
+#include <stdio.h>
 
 int curve_init(Curve *curve, Big p, Big a, Big b) {
-    if (!field_init(&curve->field, p) || big_compare(a,p)>=0 || big_compare(b,p)>=0)
+    if (field_init(&curve->field, p) != 0 || big_compare(a,p)>=0 || big_compare(b,p)>=0)
         return 0;
     curve->a = a; curve->b = b;
     const Field *f = &curve->field;

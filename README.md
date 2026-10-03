@@ -27,6 +27,7 @@ big integers implemented manually using arrays.
 crypto/
 ├── Cargo.toml                 Rust workspace
 ├── crates/                    Rust implementations of the first five practices
+├── c/handcrafted/             Shared unsigned 2048-bit arithmetic and contracts
 ├── c/elliptic-curve/           C17 point arithmetic and tests
 ├── c/toy-ecdh/                 C17 scalar multiplication and ECDH
 ├── c/toy_ecdsa/                C17 signing, verification and small discrete logs
@@ -104,6 +105,22 @@ The deploy workflow publishes `web/dist/` to the Cloudflare Pages project
 All deployments must go through this GitHub Actions workflow after committing
 and pushing the changes. Do not deploy directly from a local terminal or a
 hosting API.
+
+## Handcrafted arithmetic
+
+The three educational curve practices share `c/handcrafted/`. BigInt status
+functions consistently return zero on success. Checked operations reject
+underflow, overflow, zero divisors and noncanonical field operands; parsing
+clears its output on failure. The decimal buffer covers the full storage size,
+including the carry word. New APIs provide unsigned division, endian conversion,
+modular reduction/inversion and caller-provided entropy without external libraries.
+
+`make -C c/handcrafted test` checks 12,772 Python-oracle vectors in native C and
+WebAssembly plus invalid-input contracts. `make -C c/handcrafted sanitize` runs
+the native checks with Clang AddressSanitizer/UndefinedBehaviorSanitizer.
+See [`c/handcrafted/README.md`](c/handcrafted/README.md) for API contracts and
+security limits. The toy compatibility functions still use `rand()` and variable
+time; the OpenSSL practice is independent.
 
 ## Stack
 

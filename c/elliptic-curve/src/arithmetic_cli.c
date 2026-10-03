@@ -1,17 +1,18 @@
 #include "curve_arithmetic.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 static int small_argument(const char *text, unsigned *value) {
     Big a;
-    if (!big_parse(text,&a) || big_bits(a)>32) return 0;
+    if (big_parse(text,&a) != 0 || big_bits(a)>32) return 0;
     *value = a.word[0];
     return 1;
 }
 
 static int read_point(char **text, Point *point) {
-    return big_parse(text[0],&point->x) && big_parse(text[1],&point->y) &&
+    return big_parse(text[0],&point->x) == 0 && big_parse(text[1],&point->y) == 0 &&
            small_argument(text[2],&point->z) && point->z<=1;
 }
 
@@ -35,7 +36,7 @@ int arithmetic_command(int argc, char **argv) {
     if ((add && argc==11) || (doubling && argc==8)) {
         Big p,a,b;
         Point point1,point2,point3;
-        if (!big_parse(argv[2],&p) || !big_parse(argv[3],&a) || !big_parse(argv[4],&b) ||
+        if (big_parse(argv[2],&p) != 0 || big_parse(argv[3],&a) != 0 || big_parse(argv[4],&b) != 0 ||
             !curve_init(&curve,p,a,b) || !read_point(argv+5,&point1)) goto invalid;
         int ok;
         if (add) {

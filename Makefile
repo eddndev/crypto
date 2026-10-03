@@ -13,7 +13,11 @@ test: test-c
 
 c: $(addprefix native-,$(PRACTICES))
 wasm: $(addprefix wasm-,$(PRACTICES))
-test-c: $(addprefix test-,$(PRACTICES))
+test-c: test-handcrafted $(addprefix test-,$(PRACTICES))
+
+.PHONY: test-handcrafted
+test-handcrafted:
+	$(MAKE) -C c/handcrafted test
 
 $(addprefix native-,$(PRACTICES)):
 	$(MAKE) -C c/$(patsubst native-%,%,$@) native

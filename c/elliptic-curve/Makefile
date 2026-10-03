@@ -13,14 +13,15 @@ endif
 EMCC ?= emcc
 CPPFLAGS += -Iinclude
 CFLAGS ?= -O2 -Wall -Wextra -Wpedantic
-ARITHMETIC := src/bigint.c src/curve_arithmetic.c src/arithmetic_cli.c
+HANDCRAFTED := ../handcrafted/src/bigint.c ../handcrafted/include/bigint.h
+ARITHMETIC := ../handcrafted/src/bigint.c src/curve_arithmetic.c src/arithmetic_cli.c
 WASM_DIR := ../../web/public/wasm/elliptic-curve
 
 all: native
 
 native: build/elliptic-curve
 
-build/elliptic-curve: src/main.c src/quadratic_residues.c src/elliptic_curve.c include/elliptic_curve.h include/bigint.h include/curve_arithmetic.h $(ARITHMETIC) Makefile
+build/elliptic-curve: src/main.c src/quadratic_residues.c src/elliptic_curve.c include/elliptic_curve.h include/bigint.h include/curve_arithmetic.h $(ARITHMETIC) $(HANDCRAFTED) Makefile
 	mkdir -p build
 	$(CC) $(CPPFLAGS) $(CFLAGS) -std=c17 src/main.c src/quadratic_residues.c src/elliptic_curve.c $(ARITHMETIC) -o $@
 
@@ -44,9 +45,9 @@ wasm:
 		exit 1; \
 	fi
 
-build/arithmetic-probe: tests/arithmetic_probe.c src/bigint.c include/bigint.h
+build/arithmetic-probe: tests/arithmetic_probe.c ../handcrafted/src/bigint.c include/bigint.h $(HANDCRAFTED)
 	mkdir -p build
-	$(CC) $(CPPFLAGS) $(CFLAGS) -std=c17 tests/arithmetic_probe.c src/bigint.c -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -std=c17 tests/arithmetic_probe.c ../handcrafted/src/bigint.c -o $@
 
 test: native wasm build/arithmetic-probe
 	python3 tests/test_native.py
