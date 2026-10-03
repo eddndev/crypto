@@ -1,6 +1,6 @@
-.PHONY: dev build test c wasm test-c $(addprefix native-,elliptic-curve toy-ecdh) $(addprefix wasm-,elliptic-curve toy-ecdh) $(addprefix test-,elliptic-curve toy-ecdh)
+.PHONY: dev build test c wasm test-c $(addprefix native-,elliptic-curve toy-ecdh toy_ecdsa) $(addprefix wasm-,elliptic-curve toy-ecdh toy_ecdsa) $(addprefix test-,elliptic-curve toy-ecdh toy_ecdsa)
 
-PRACTICES := elliptic-curve toy-ecdh
+PRACTICES := elliptic-curve toy-ecdh toy_ecdsa
 
 dev:
 	npm --prefix web run dev

@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import ToyEcdsaWorkspace from './ToyEcdsaWorkspace';
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const description = es
+  ? 'Genera claves, firma un entero y comprueba su firma. Cambia el mensaje para observar el resultado de la verificación.'
+  : 'Generate keys, sign an integer and verify its signature. Change the message to see how verification responds.';
+---
+<Base title="Toy ECDSA — Cryptography" description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={es ? '/es/practices' : '/practices'} class="inline-flex gap-2 font-mono text-sm text-text-secondary hover:text-accent mb-8">
+      ← {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-sm text-accent uppercase tracking-widest mb-3">{es ? 'Práctica' : 'Practice'} 08</span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-tight uppercase mb-4">Toy ECDSA</h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[760px] mb-10">{description}</p>
+    <ToyEcdsaWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>

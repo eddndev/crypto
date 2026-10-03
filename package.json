@@ -1,0 +1,11 @@
+{
+  "name": "crypto",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "test:c": "npm --prefix web run test:c"
+  }
+}

@@ -13,6 +13,7 @@ All practices share one catalog at `/practices` (English) and `/es/practices`
 5. AES Modes of Operation
 6. Elliptic Curve
 7. Toy ECDH
+8. Toy ECDSA
 
 Elliptic Curve computes quadratic residues and roots, enumerates rational points,
 exports points to a text file, generates curves up to 2048 bits, and adds or
@@ -27,6 +28,7 @@ crypto/
 ├── crates/                    Rust implementations of the first five practices
 ├── c/elliptic-curve/           C17 point arithmetic and tests
 ├── c/toy-ecdh/                 C17 scalar multiplication and ECDH
+├── c/toy_ecdsa/                C17 signing, verification and small discrete logs
 ├── scripts/                   Emscripten setup and native/WASM parity tests
 ├── web/                       Astro frontend and practice interfaces
 │   ├── src/components/        Shared UI and practice workspaces
@@ -82,9 +84,17 @@ It compares RTL/LTR iteration traces and computes `A=rG`, `B=sG`, `K_A=rB`
 and `K_B=sA`. See [`c/toy-ecdh/README.md`](c/toy-ecdh/README.md) for CLI usage
 and the limits of this classroom implementation.
 
+Toy ECDSA is available at `/practices/toy-ecdsa` and `/es/practices/toy-ecdsa`.
+It generates keys, signs integers, verifies signatures, simulates Alice/Bob,
+and recovers small private scalars with baby-step giant-step. See
+[`c/toy_ecdsa/README.md`](c/toy_ecdsa/README.md) for parameters and commands.
+
 Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
 The deploy workflow publishes `web/dist/` to the Cloudflare Pages project
 `crypto-web`.
+All deployments must go through this GitHub Actions workflow after committing
+and pushing the changes. Do not deploy directly from a local terminal or a
+hosting API.
 
 ## Stack
 

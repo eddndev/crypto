@@ -20,11 +20,13 @@ pkg/
 # Env
 .env
 .env.*
+/.wrangler/
 
 # C / Emscripten
 .tools/
 web/public/wasm/elliptic-curve/
 web/public/wasm/toy-ecdh/
+web/public/wasm/toy-ecdsa/
 
 # Local coursework and report utilities
 /STIC/
