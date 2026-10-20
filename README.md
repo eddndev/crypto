@@ -15,6 +15,9 @@ All practices share one catalog at `/practices` (English) and `/es/practices`
 7. Toy ECDH
 8. Toy ECDSA
 9. ECDSA & ECDH with OpenSSL
+10. RSA-PSS with OpenSSL
+11. RSA with CRT
+12. RSA-OAEP with OpenSSL
 
 Elliptic Curve computes quadratic residues and roots, enumerates rational points,
 exports points to a text file, generates curves up to 2048 bits, and adds or
@@ -31,6 +34,10 @@ crypto/
 ├── c/elliptic-curve/           C17 point arithmetic and tests
 ├── c/toy-ecdh/                 C17 scalar multiplication and ECDH
 ├── c/toy_ecdsa/                C17 signing, verification and small discrete logs
+├── c/standard-ec/              C17 ECDSA/ECDH with OpenSSL 3
+├── c/rsa-pss/                  C17 RSASSA-PSS with OpenSSL 3
+├── c/rsa-crt/                  C17 schoolbook RSA with CRT on Handcrafted
+├── c/rsa-oaep/                 C17 RSA-OAEP with CRT and AES-128-GCM (OpenSSL 3)
 ├── scripts/                   Emscripten setup and native/WASM parity tests
 ├── web/                       Astro frontend and practice interfaces
 │   ├── src/components/        Shared UI and practice workspaces
@@ -98,6 +105,23 @@ Standard ECDSA/ECDH is available at `/practices/standard-ec` and
 `/es/practices/standard-ec`. It uses OpenSSL in C17 for file signatures,
 P-224/P-256/P-384/P-521, PEM keys, ECDH and HKDF-SHA-256.
 See [`c/standard-ec/README.md`](c/standard-ec/README.md).
+
+RSA-PSS is available at `/practices/rsa-pss` and `/es/practices/rsa-pss`.
+It generates RSA keys and signs or verifies files with RSASSA-PSS, SHA-256 and
+OpenSSL. See [`c/rsa-pss/README.md`](c/rsa-pss/README.md).
+
+RSA with CRT is available at `/practices/rsa-crt` and `/es/practices/rsa-crt`.
+It generates schoolbook RSA key pairs `(e, n)` and `(p, q, n, d, dp, dq)` with a
+random `e`, encrypts integers with Square and Multiply and decrypts with the
+Chinese remainder theorem, printing `cp`, `cq`, `mp`, `mq`, `q_inv`, `h` and `m`.
+The arithmetic uses Handcrafted; OpenSSL only generates the primes `p` and `q`.
+See [`c/rsa-crt/README.md`](c/rsa-crt/README.md).
+
+RSA-OAEP is available at `/practices/rsa-oaep` and `/es/practices/rsa-oaep`.
+Alice generates an RSA-OAEP key pair with a CRT private key (PEM, Base64), Bob
+encrypts a file with a random 128-bit AES-GCM key `K` and wraps `K` with
+RSA-OAEP (SHA-256, MGF1-SHA-256), and Alice unwraps `K` and decrypts the file.
+See [`c/rsa-oaep/README.md`](c/rsa-oaep/README.md).
 
 Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
 The deploy workflow publishes `web/dist/` to the Cloudflare Pages project

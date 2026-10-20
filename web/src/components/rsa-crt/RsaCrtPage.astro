@@ -1,0 +1,26 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import RsaCrtWorkspace from './RsaCrtWorkspace';
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const title = es ? 'RSA con TCR' : 'RSA with CRT';
+const description = es
+  ? 'Genera claves RSA de libro de texto, cifra enteros y descifra con el teorema chino del residuo mostrando cada valor intermedio. Práctica 06 de Selected Topics in Cryptography.'
+  : 'Generate schoolbook RSA keys, encrypt integers and decrypt with the Chinese remainder theorem, showing every intermediate value. Selected Topics in Cryptography Lab 06.';
+---
+<Base title={`${title} — Cryptography`} description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={es ? '/es/practices' : '/practices'} class="inline-flex gap-2 font-mono text-sm text-text-secondary hover:text-accent mb-8">
+      ← {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-sm text-accent uppercase tracking-widest mb-3">{es ? 'Práctica' : 'Practice'} 11 · Handcrafted</span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-tight uppercase mb-4">{title}</h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[760px] mb-10">{description}</p>
+    <RsaCrtWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>

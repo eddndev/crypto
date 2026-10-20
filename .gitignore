@@ -39,3 +39,6 @@ web/public/wasm/toy-ecdsa/
 web/public/wasm/standard-ec/
 
 web/public/wasm/rsa-pss/
+
+web/public/wasm/rsa-crt/
+web/public/wasm/rsa-oaep/
