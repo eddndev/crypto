@@ -16,5 +16,6 @@
   en `c/handcrafted/README.md`. La aritmética sigue siendo de tiempo variable.
 - La práctica 04 usa OpenSSL 3 para ECDSA y ECDH estándar, en C nativo y
   WebAssembly. Mantener esta biblioteca para claves y curvas de dicha práctica.
+- La práctica 05 usa OpenSSL 3 para RSASSA-PSS en C17 nativo y WebAssembly.
 - Al cambiar Handcrafted, ejecutar sus pruebas y sanitizadores, además de las
   regresiones de las prácticas que comparten el núcleo.

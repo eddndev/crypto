@@ -37,3 +37,5 @@ web/public/wasm/toy-ecdsa/
 /scripts/lab-results.py
 
 web/public/wasm/standard-ec/
+
+web/public/wasm/rsa-pss/
