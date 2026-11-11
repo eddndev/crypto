@@ -77,6 +77,18 @@ const practices = [
     tags: ['RSA-OAEP', 'AES-128', 'OpenSSL'],
     href: '/practices/rsa-oaep',
   },
+  {
+    title: 'MAC · OpenSSL',
+    description: 'Generate keys, compute and verify HMAC-SHA-256 and CMAC-AES-128 tags for any file with OpenSSL in your browser.',
+    tags: ['HMAC', 'CMAC', 'OpenSSL'],
+    href: '/practices/mac',
+  },
+  {
+    title: 'ECDH and MAC · OpenSSL',
+    description: 'Alice and Bob agree on K with ECDH and HKDF, Alice authenticates Bob with an HMAC challenge, and both exchange files encrypted with AES-128-GCM.',
+    tags: ['ECDH', 'HMAC', 'AES-128', 'OpenSSL'],
+    href: '/practices/mac-auth',
+  },
 ];
 ---
 

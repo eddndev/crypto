@@ -17,5 +17,7 @@
 - La práctica 04 usa OpenSSL 3 para ECDSA y ECDH estándar, en C nativo y
   WebAssembly. Mantener esta biblioteca para claves y curvas de dicha práctica.
 - La práctica 05 usa OpenSSL 3 para RSASSA-PSS en C17 nativo y WebAssembly.
+- La práctica 07 usa OpenSSL 3 para HMAC, CMAC, ECDH, HKDF y AES-GCM en C17
+  nativo y WebAssembly (`c/mac`, `c/mac-auth`).
 - Al cambiar Handcrafted, ejecutar sus pruebas y sanitizadores, además de las
   regresiones de las prácticas que comparten el núcleo.

@@ -1,0 +1,25 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../Header.astro';
+import Footer from '../Footer.astro';
+import MacWorkspace from './MacWorkspace';
+interface Props { lang?: 'en' | 'es'; }
+const { lang = 'en' } = Astro.props;
+const es = lang === 'es';
+const description = es
+  ? 'Genera claves HMAC-SHA-256 y CMAC-AES-128, calcula la etiqueta de un archivo y verifica etiquetas con OpenSSL en tu navegador. Práctica 07 de Selected Topics in Cryptography.'
+  : 'Generate HMAC-SHA-256 and CMAC-AES-128 keys, compute the tag of a file and verify tags with OpenSSL in your browser. Selected Topics in Cryptography Lab 07.';
+---
+<Base title="MAC — OpenSSL" description={description}>
+  <Header />
+  <main class="relative mx-auto w-full max-w-[1200px] px-8 pt-28 pb-24 max-md:px-5">
+    <a href={es ? '/es/practices' : '/practices'} class="inline-flex gap-2 font-mono text-sm text-text-secondary hover:text-accent mb-8">
+      ← {es ? 'Volver a las prácticas' : 'Back to practices'}
+    </a>
+    <span class="block font-mono text-sm text-accent uppercase tracking-widest mb-3">{es ? 'Práctica' : 'Practice'} 13 · OpenSSL</span>
+    <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-extrabold tracking-tight uppercase mb-4">MAC</h1>
+    <p class="text-text-secondary text-lg leading-relaxed max-w-[760px] mb-10">{description}</p>
+    <MacWorkspace lang={lang} client:load />
+  </main>
+  <Footer lang={lang} />
+</Base>

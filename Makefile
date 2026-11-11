@@ -1,6 +1,6 @@
-.PHONY: dev build test c wasm test-c $(addprefix native-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep) $(addprefix wasm-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep) $(addprefix test-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep)
+.PHONY: dev build test c wasm test-c $(addprefix native-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep mac mac-auth) $(addprefix wasm-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep mac mac-auth) $(addprefix test-,elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep mac mac-auth)
 
-PRACTICES := elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep
+PRACTICES := elliptic-curve toy-ecdh toy_ecdsa standard-ec rsa-pss rsa-crt rsa-oaep mac mac-auth
 
 dev:
 	npm --prefix web run dev

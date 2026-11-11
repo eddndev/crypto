@@ -38,6 +38,8 @@ crypto/
 ├── c/rsa-pss/                  C17 RSASSA-PSS with OpenSSL 3
 ├── c/rsa-crt/                  C17 schoolbook RSA with CRT on Handcrafted
 ├── c/rsa-oaep/                 C17 RSA-OAEP with CRT and AES-128-GCM (OpenSSL 3)
+├── c/mac/                      C17 HMAC-SHA-256 and CMAC-AES-128 (OpenSSL 3)
+├── c/mac-auth/                 C17 ECDH, HKDF, HMAC challenge and AES-128-GCM (OpenSSL 3)
 ├── scripts/                   Emscripten setup and native/WASM parity tests
 ├── web/                       Astro frontend and practice interfaces
 │   ├── src/components/        Shared UI and practice workspaces
@@ -122,6 +124,16 @@ Alice generates an RSA-OAEP key pair with a CRT private key (PEM, Base64), Bob
 encrypts a file with a random 128-bit AES-GCM key `K` and wraps `K` with
 RSA-OAEP (SHA-256, MGF1-SHA-256), and Alice unwraps `K` and decrypts the file.
 See [`c/rsa-oaep/README.md`](c/rsa-oaep/README.md).
+
+MAC is available at `/practices/mac` and `/es/practices/mac`. It generates
+HMAC-SHA-256 (256-bit) and CMAC-AES-128 (128-bit) keys, tags any file and
+verifies the tag. See [`c/mac/README.md`](c/mac/README.md).
+
+ECDH and MAC is available at `/practices/mac-auth` and `/es/practices/mac-auth`.
+Alice and Bob agree on `s` with P-256 ECDH and derive `K` with HKDF-SHA-256,
+Alice authenticates Bob with `tau = HMAC_K(r)`, and both derive
+`KE = HKDF(tau)` to exchange files with AES-128-GCM.
+See [`c/mac-auth/README.md`](c/mac-auth/README.md).
 
 Pushes to `main` run the C/WebAssembly tests and Astro build in GitHub Actions.
 The deploy workflow publishes `web/dist/` to the Cloudflare Pages project
